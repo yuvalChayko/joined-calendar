@@ -431,6 +431,8 @@ class joined_calendar_db:
         """
         sql = "UPDATE " + self.calendars + " SET name = " + name + " WHERE calendar_id = ?"
         self.db_cursor.execute(sql, (id,))
+        self.db_conn.commit()
+
 
     def change_event_name(self, id, name):
         """
@@ -441,6 +443,8 @@ class joined_calendar_db:
            """
         sql = "UPDATE " + self.event_info + " SET name = " + name + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (id,))
+        self.db_conn.commit()
+
 
     def change_event_time(self, id, start, end, date):
         """
@@ -453,6 +457,8 @@ class joined_calendar_db:
         """
         sql = "UPDATE " + self.event_info + " SET start_hour = " + start + " , end_hour = " + end + " , date = " + date + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (id,))
+        self.db_conn.commit()
+
 
     def add_reminder(self, time, date, event_id, username):
         """
@@ -467,16 +473,97 @@ class joined_calendar_db:
         self.db_cursor.execute(sql_table, (username, event_id, date, time,))
         self.db_conn.commit()
 
-    def set_today_reminders(self):
+    def get_today_reminders(self):
         """
         return list of all the reminders at the same day and delete them from the reminders table
         :return: list of all the reminders at the same day
         """
         today = date.today()
         today = today.strftime("%d.%m.%Y")
-        print(today)
+        sql = "SELECT username, event_id, time FROM " + self.reminders + " WHERE date = ?"
+        self.db_cursor.execute(sql, (today,))
+        reminders = self.db_cursor.fetchall()
+        sql = "DELETE FROM " + self.reminders + " WHERE date = ?"
+        self.db_cursor.execute(sql, (today,))
+        self.db_conn.commit()
 
 
+        return reminders
+
+    def delete_reminder_for_user(self, username, event_id):
+        """
+        delete the reminder from reminders table
+        :param username:
+        :param event_id:
+        :return:
+        """
+        sql = "DELETE FROM " + self.reminders + " WHERE username = ? And event_id = ?"
+        self.db_cursor.execute(sql, (username, event_id,))
+        self.db_conn.commit()
+
+    def delete_reminder_for_all(self, event_id):
+        """
+        delete all reminders for this event from reminders table
+        :param event_id:
+        :return:
+        """
+        sql = "DELETE FROM " + self.reminders + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (event_id,))
+        self.db_conn.commit()
+
+    def get_event_participants(self, id):
+        """
+        return event participants
+        :param id:
+        :return: list
+        """
+        sql = "SELECT participant FROM " + self.events_participants + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (id,))
+        participants = self.db_cursor.fetchall()
+        participants = [i[0] for i in participants]
+        return participants
+
+    def exit_calendar(self, calendar_id, username):
+        """
+        remove user from calendar
+        :param calendar_id:
+        :param username:
+        :return:
+        """
+        if self._is_calendar_exists(calendar_id) and self._is_user_exists(username) and self.is_participant_exists_in_calendar(calendar_id, username):
+            if self.is_manager_calander(calendar_id, username):
+                # delete calendar
+                sql = ["DELETE FROM " + self.calendar_invitations + " WHERE calendar_id = ?",
+                       "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ?",
+                       "DELETE FROM " + self.calendars + " WHERE calendar_id = ?"]
+                [self.db_cursor.execute(x, (calendar_id,)) for x in sql]
+                self.db_conn.commit()
+
+                sql = "SELECT event_id FROM " + self.event_info + " WHERE calendar_id = ?"
+                self.db_cursor.execute(sql, (calendar_id,))
+                events = self.db_cursor.fetchall()
+                events = [x[0] for x in events]
+                for x in events:
+                    sql = ["DELETE FROM " + self.event_invitations + " WHERE event_id = ?",
+                    "DELETE FROM " + self.events_participants + " WHERE event_id = ?",
+                    "DELETE FROM " + self.reminders + " WHERE event_id = ?"]
+                    [self.db_cursor.execute(s, (x,)) for s in sql]
+                    self.db_conn.commit()
+
+                sql = "DELETE FROM " + self.event_info + " WHERE calendar_id = ?"
+                self.db_cursor.execute(sql, (calendar_id,))
+                self.db_conn.commit()
+
+            else:
+                # remove from calendar
+
+                #self.calendars_participants, self.event_info, self.events_participants, self.event_invitations, self.reminders
+
+                sql = "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ? AND participant = ?"
+                self.db_cursor.execute(sql, (calendar_id, username, ))
+                self.db_conn.commit()
+                
+                pass
 
 if __name__ == '__main__':
     db = joined_calendar_db()
@@ -489,10 +576,21 @@ if __name__ == '__main__':
     print(db.add_calendar_invitation("1", "test1", "test2"))
     print(db.add_calendar_invitation("1", "fake", "test2"))
     print(db.add_event("test name", ["test1", "test2"], "1", "test1", "14:00", "16:00", "12.2.2024"))
+    print(db.add_calendar_participant("2", "test2"))
+    print(db.add_event("test name", ["test1", "test2"], "2", "test1", "11:00", "13:00", "12.2.2024"))
+    print(db.add_event("test name", ["test1", "test2"], "1", "test1", "08:00", "09:00", "12.2.2024"))
     print(db.add_event_participant("1", "test1"))
     print(db.add_event_participant("1", "test2"))
     print(db.add_event_participant("700", "test3"))
-    db.set_today_reminders()
+    db.add_reminder("18:00", "15.02.2024", '1', "test1")
+    db.add_reminder("17:00", "15.02.2024", '1', "test2")
+    db.add_reminder("18:00", "15.03.2024", '2', "test1")
+    db.add_reminder("18:00", "15.03.2024", '2', "test2")
+    db.delete_reminder_for_user("test2", "2")
+    db.delete_reminder_for_user("test1", "2")
+    db.delete_reminder_for_all("2")
+
+    print(db.get_today_reminders())
 
     #print(db.find_color("100"))
 
