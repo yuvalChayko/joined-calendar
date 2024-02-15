@@ -562,7 +562,17 @@ class joined_calendar_db:
                 sql = "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ? AND participant = ?"
                 self.db_cursor.execute(sql, (calendar_id, username, ))
                 self.db_conn.commit()
-                
+
+                sql = "SELECT event_id FROM " + self.event_info + " WHERE calendar_id = ? AND manager = ?"
+                self.db_cursor.execute(sql, (calendar_id, username,))
+                events = self.db_cursor.fetchall()
+                events = [x[0] for x in events]
+
+                for x in events:
+                    sql = "DELETE FROM " + self.events_participants + " WHERE event_id = ? AND participant = ?"
+                    sql = "DELETE FROM " + self.event_invitations + " WHERE event_id = ? AND invited_by = ?"
+                    sql = "DELETE FROM " + self.reminders + " WHERE event_id = ? AND participant = ?"
+
                 pass
 
 if __name__ == '__main__':
