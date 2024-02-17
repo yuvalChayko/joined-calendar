@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import date
 
 class joined_calendar_db:
 
@@ -15,6 +16,7 @@ class joined_calendar_db:
         self.event_invitations = "event_invitations"
         self.reminders = "reminders"
         self.colors = ['BLUE', 'YELLOW', 'RED', 'GREEN', 'PURPLE','PINK', 'GREY', 'ORANGE', 'BROWN', 'GOLD', 'TURQUOISE', 'LIGHT BLUE', 'LIME GREEN', 'SALMON', 'DARK OLIVE GREEN']
+        self.joined_color = 'BLACK'
         self.last_event_id = 1000
         self.last_calendar_id = 100
 
@@ -109,7 +111,7 @@ class joined_calendar_db:
         if calendar exists, add participant to calendar_participants table
         :param id: str
         :param user: str
-        :return: None
+        :return:
         """
         flag = False
         if self._is_calendar_exists(id):
@@ -236,6 +238,9 @@ class joined_calendar_db:
                     self.db_cursor.execute(sql)
                     event_id = self.db_cursor.fetchone()[0]
                     self.add_event_participant(event_id, manager)
+                    participants = participants[1:]
+                    for user in participants:
+                        self.add_event_invitation(event_id, calendar_id, user, manager)
                 else:
                     print("time is not available")
             else:
@@ -375,7 +380,7 @@ class joined_calendar_db:
         :return:
         """
         sql_table = "SELECT username FROM " + self.event_invitations + " WHERE event_id = ?"
-        self.db_cursor.execute(sql_table, (id,))
+        self.db_cursor.execute(sql_table, (event_id,))
         invitations = self.db_cursor.fetchall()
         invitations = [i[0] for i in invitations]
 
@@ -390,7 +395,7 @@ class joined_calendar_db:
         """
         sql = "SELECT manager FROM " + self.calendars + " WHERE calendar_id = ?"
         self.db_cursor.execute(sql, (id,))
-        manager = self.db_cursor.fetchone()
+        manager = self.db_cursor.fetchone()[0]
 
         return manager == user
 
@@ -401,9 +406,9 @@ class joined_calendar_db:
         :param user:
         :return:
         """
-        sql = "SELECT manager FROM " + self.events_participants + " WHERE event_id = ?"
+        sql = "SELECT manager FROM " + self.event_info + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (id,))
-        manager = self.db_cursor.fetchone()
+        manager = self.db_cursor.fetchone()[0]
 
         return manager == user
 
@@ -430,6 +435,8 @@ class joined_calendar_db:
         """
         sql = "UPDATE " + self.calendars + " SET name = " + name + " WHERE calendar_id = ?"
         self.db_cursor.execute(sql, (id,))
+        self.db_conn.commit()
+
 
     def change_event_name(self, id, name):
         """
@@ -440,6 +447,8 @@ class joined_calendar_db:
            """
         sql = "UPDATE " + self.event_info + " SET name = " + name + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (id,))
+        self.db_conn.commit()
+
 
     def change_event_time(self, id, start, end, date):
         """
@@ -452,6 +461,324 @@ class joined_calendar_db:
         """
         sql = "UPDATE " + self.event_info + " SET start_hour = " + start + " , end_hour = " + end + " , date = " + date + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (id,))
+        self.db_conn.commit()
+
+
+    def add_reminder(self, time, date, event_id, username):
+        """
+        add reminder to reminder table
+        :param time:
+        :param date:
+        :param event_id:
+        :param username:
+        :return:
+        """
+        sql_table = "INSERT INTO " + self.reminders + " VALUES(?,?,?,?)"
+        self.db_cursor.execute(sql_table, (username, event_id, date, time,))
+        self.db_conn.commit()
+
+    def get_today_reminders(self):
+        """
+        return list of all the reminders at the same day and delete them from the reminders table
+        :return: list of all the reminders at the same day
+        """
+        today = date.today()
+        today = today.strftime("%d.%m.%Y")
+        sql = "SELECT username, event_id, time FROM " + self.reminders + " WHERE date = ?"
+        self.db_cursor.execute(sql, (today,))
+        reminders = self.db_cursor.fetchall()
+        sql = "DELETE FROM " + self.reminders + " WHERE date = ?"
+        self.db_cursor.execute(sql, (today,))
+        self.db_conn.commit()
+
+
+        return reminders
+
+    def delete_reminder_for_user(self, username, event_id):
+        """
+        delete the reminder from reminders table
+        :param username:
+        :param event_id:
+        :return:
+        """
+        sql = "DELETE FROM " + self.reminders + " WHERE username = ? And event_id = ?"
+        self.db_cursor.execute(sql, (username, event_id,))
+        self.db_conn.commit()
+
+    def delete_reminder_for_all(self, event_id):
+        """
+        delete all reminders for this event from reminders table
+        :param event_id:
+        :return:
+        """
+        sql = "DELETE FROM " + self.reminders + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (event_id,))
+        self.db_conn.commit()
+
+    def get_event_participants(self, id):
+        """
+        return event participants
+        :param id:
+        :return: list
+        """
+        sql = "SELECT participant FROM " + self.events_participants + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (id,))
+        participants = self.db_cursor.fetchall()
+        participants = [i[0] for i in participants]
+        return participants
+
+    def exit_calendar(self, calendar_id, username):
+        """
+        remove user from calendar
+        :param calendar_id:
+        :param username:
+        :return:
+        """
+        if self._is_calendar_exists(calendar_id) and self._is_user_exists(username) and self.is_participant_exists_in_calendar(calendar_id, username):
+            if self.is_manager_calander(calendar_id, username):
+                # delete calendar
+                sql = ["DELETE FROM " + self.calendar_invitations + " WHERE calendar_id = ?",
+                       "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ?",
+                       "DELETE FROM " + self.calendars + " WHERE calendar_id = ?"]
+                [self.db_cursor.execute(x, (calendar_id,)) for x in sql]
+                self.db_conn.commit()
+
+                sql = "SELECT event_id FROM " + self.event_info + " WHERE calendar_id = ?"
+                self.db_cursor.execute(sql, (calendar_id,))
+                events = self.db_cursor.fetchall()
+                events = [x[0] for x in events]
+                for x in events:
+                    sql = ["DELETE FROM " + self.event_invitations + " WHERE event_id = ?",
+                    "DELETE FROM " + self.events_participants + " WHERE event_id = ?",
+                    "DELETE FROM " + self.reminders + " WHERE event_id = ?"]
+                    [self.db_cursor.execute(s, (x,)) for s in sql]
+                    self.db_conn.commit()
+
+                sql = "DELETE FROM " + self.event_info + " WHERE calendar_id = ?"
+                self.db_cursor.execute(sql, (calendar_id,))
+                self.db_conn.commit()
+
+            else:
+                # remove from calendar
+
+                #self.calendars_participants, self.event_info, self.events_participants, self.event_invitations, self.reminders
+
+                sql = "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ? AND participant = ?"
+                self.db_cursor.execute(sql, (calendar_id, username, ))
+                self.db_conn.commit()
+
+                sql = "SELECT event_id FROM " + self.event_info + " WHERE calendar_id = ? AND manager = ?"
+                self.db_cursor.execute(sql, (calendar_id, username,))
+                events = self.db_cursor.fetchall()
+                events = [x[0] for x in events]
+
+                for x in events:
+                    sql = ["DELETE FROM " + self.events_participants + " WHERE event_id = ? AND participant = ?",
+                           "DELETE FROM " + self.reminders + " WHERE event_id = ? AND participant = ?"]
+                    [self.db_cursor.execute(s, (x, username,)) for s in sql]
+                    self.db_conn.commit()
+                    sql = "DELETE FROM " + self.event_invitations + " WHERE event_id = ?"
+                    self.db_cursor.execute(sql, (calendar_id,))
+                    self.db_conn.commit()
+
+                sql = "DELETE FROM " + self.event_info + " WHERE calendar_id = ? AND manager = ?"
+                self.db_cursor.execute(sql, (calendar_id, username,))
+                self.db_conn.commit()
+
+    def delete_event(self, event_id, username):
+        """
+        delete event
+        :param event_id:
+        :param username:
+        :return:
+        """
+        flag = self.is_manager_event(event_id, username)
+        if flag:
+            sql = ["DELETE FROM " + self.event_info + " WHERE event_id = ?",
+                   "DELETE FROM " + self.event_invitations + " WHERE event_id = ?",
+                   "DELETE FROM " + self.events_participants + " WHERE event_id = ?"]
+            [self.db_cursor.execute(s, (event_id,)) for s in sql]
+            self.db_conn.commit()
+        return flag
+
+    def get_manager_calander(self, id):
+        """
+        get the manager of the calendar
+        :param id:
+        :return: manager
+        """
+        sql = "SELECT manager FROM " + self.calendars + " WHERE calendar_id = ?"
+        self.db_cursor.execute(sql, (id,))
+        manager = self.db_cursor.fetchone()[0]
+
+        return manager
+
+    def get_manager_event(self, id):
+        """
+        get the manager of the event
+        :param id:
+        :return: manager
+        """
+        sql = "SELECT manager FROM " + self.event_info + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (id,))
+        manager = self.db_cursor.fetchone()[0]
+
+        return manager
+
+    def get_calendar_invitations(self, username):
+        """
+        get all the user's calendar invitations
+        :param username:
+        :return: list of all the invitations
+        """
+
+        sql = "SELECT invited_by, calendar_id FROM " + self.calendar_invitations + " WHERE username = ?"
+        self.db_cursor.execute(sql, (username,))
+        invitations = self.db_cursor.fetchall()
+        invitations = [x for x in invitations]
+        return invitations
+
+    def get_event_invitations(self, username):
+        """
+        get all the user's event invitations
+        :param username:
+        :return: list of all the invitations
+        """
+
+        sql = "SELECT invited_by, event_id, calendar_id FROM " + self.event_invitations + " WHERE username = ?"
+        self.db_cursor.execute(sql, (username,))
+        invitations = self.db_cursor.fetchall()
+        invitations = [x for x in invitations]
+        return invitations
+
+    def delete_calendar_invitation(self, username, id):
+        """
+        delete calendar invitation
+        :param username:
+        :param id:
+        :return:
+        """
+        if self.is_calendar_invitation_exists(id, username):
+            sql = "DELETE FROM " + self.calendar_invitations + " WHERE username = ? AND calendar_id = ?"
+            self.db_cursor.execute(sql, (username, id,))
+            self.db_conn.commit()
+        else:
+            print("error - calendar invitation doesnt exists")
+
+    def delete_event_invitation(self, username, id):
+        """
+        delete calendar invitation
+        :param username:
+        :param id:
+        :return:
+        """
+        if self.is_event_invitation_exists(id, username):
+            sql = "DELETE FROM " + self.event_invitations + " WHERE username = ? AND event_id = ?"
+            self.db_cursor.execute(sql, (username, id,))
+            self.db_conn.commit()
+        else:
+            print("error - event invitation doesnt exists")
+
+    def get_user_calendars(self, username):
+        """
+        get list of username calendars ids
+        :param username:
+        :return:
+        """
+        sql = "SELECT calendar_id FROM " + self.calendars_participants + " WHERE participant = ?"
+        self.db_cursor.execute(sql, (username,))
+        calendars = self.db_cursor.fetchall()
+        calendars = [x[0] for x in calendars]
+        return calendars
+
+    def get_events_of_calendar(self, calendar_id, month, year):
+        """
+        get list that contains date and color of all the events in this month that users from the calendar are participating
+        :param calendar_id:
+        :param month:
+        :param year:
+        :return:
+        """
+        events = []
+        if self._is_calendar_exists(calendar_id):
+            participants = self.get_calendar_participants(calendar_id)
+            month_year = month + "." + year
+            sql = f"SELECT event_id, date FROM {self.event_info} WHERE date LIKE ?"
+            wildcard_month_year = '%' + month_year
+            self.db_cursor.execute(sql, (wildcard_month_year,))
+            temp = self.db_cursor.fetchall()
+            ids = []
+            dates = []
+            set_participants = set(participants)
+            for t in temp:
+                ids += [t[0]]
+                dates += [t[1]]
+            print(ids)
+            for id in ids:
+                p = self.get_event_participants(id)
+                set_p = set(p)
+                both = set_p & set_participants
+                if both:
+                    date = dates[ids.index(id)]
+                    if len(both) > 1:
+                        temp = (date, self.joined_color, [id])
+                    else:
+                        both = list(both)
+                        temp = (date, self.get_color(both[0], calendar_id), [id])
+
+                    for event in events:
+                        if event[0] == date:
+                            if temp[1] != event[1]:
+                                add_id = event[2] + temp[2]
+                                events[events.index(event)] = (event[0], self.joined_color, add_id)
+                            else:
+                                add_id = event[2].append(temp[2])
+                                events[events.index(event)] = (event[0], event[1], add_id)
+
+                            break
+                    else:
+                        events.append(temp)
+
+        return events
+
+    def get_color(self, username, calendar_id):
+        """
+        get color of username in calendar
+        :param username:
+        :param calendar_id:
+        :return:
+        """
+        sql = "SELECT color FROM " + self.calendars_participants + " WHERE participant = ? AND calendar_id = ?"
+        self.db_cursor.execute(sql, (username, calendar_id,))
+        return self.db_cursor.fetchone()[0]
+
+    def get_day_events(self, username, calendar_id, date):
+        """
+        get event info for all the events of the day
+        :param username:
+        :param calendar_id:
+        :param date:
+        :return:
+        """
+        day, month, year = date.split('.')
+        month_event = self.get_events_of_calendar(calendar_id, month, year)
+        day_events = []
+        for x in month_event:
+            if x[0] == date:
+                ids = x[2]
+                for id in ids:
+                    participants = self.get_event_participants(id)
+                    if username in participants:
+                        sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
+                    else:
+                        sql = "SELECT start_hour, end_hour, date FROM " + self.event_info + " WHERE event_id = ?"
+                    self.db_cursor.execute(sql, (id,))
+                    info = self.db_cursor.fetchone()
+                    info = list(info) + [participants]
+                    day_events += [info]
+                break
+        return day_events
+
 
 if __name__ == '__main__':
     db = joined_calendar_db()
@@ -459,17 +786,42 @@ if __name__ == '__main__':
     print(db.add_calendar("test", "test1"))
     print(db.add_calendar("test", "test1"))
     print(db.add_user('test2', '1234', "2222222222"))
+    print(db.add_user('test3', '1234', "3333333333"))
     print(db.add_calendar_participant("1", "test2"))
     print(db.add_calendar_participant("1", "test2"))
     print(db.add_calendar_invitation("1", "test1", "test2"))
+    print(db.add_calendar_invitation("2", "test1", "test2"))
     print(db.add_calendar_invitation("1", "fake", "test2"))
-    print(db.add_event("test name", ["test1", "test2"], "1", "test1", "14:00", "16:00", "12.2.2024"))
+    print(db.add_event("test name", ["test1", "test2"], "1", "test1", "14:00", "16:00", "12.02.2024"))
+    print(db.add_calendar_participant("2", "test2"))
+    print(db.add_event("test name", ["test1", "test2"], "2", "test1", "11:00", "13:00", "12.02.2024"))
+    print(db.add_event("test name", ["test1"], "2", "test1", "11:00", "13:00", "13.02.2024"))
+    print(db.add_event("test name", ["test1"], "2", "test1", "11:00", "13:00", "13.03.2024"))
+    print(db.add_event("test name", ["test1", "test2"], "1", "test1", "08:00", "09:00", "12.02.2024"))
     print(db.add_event_participant("1", "test1"))
     print(db.add_event_participant("1", "test2"))
     print(db.add_event_participant("700", "test3"))
+    db.add_reminder("18:00", "15.02.2024", '1', "test1")
+    db.add_reminder("17:00", "15.02.2024", '1', "test2")
+    db.add_reminder("18:00", "15.03.2024", '2', "test1")
+    db.add_reminder("18:00", "15.03.2024", '2', "test2")
+    db.delete_reminder_for_user("test2", "2")
+    db.delete_reminder_for_user("test1", "2")
+    db.delete_reminder_for_all("2")
+
+    print(db.get_today_reminders())
+    print(db.get_calendar_invitations("test2"))
+    print(db.get_event_invitations("test2"))
+    db.delete_calendar_invitation("test2", '1')
+    db.delete_event_invitation("test2", '1')
+    print(db.get_calendar_invitations("test2"))
+    print(db.get_event_invitations("test2"))
+    print(db.get_user_calendars("test1"))
+    print(db.delete_event("2", "test1"))
+    print(db.get_events_of_calendar("2", "02", "2024"))
+    print(db.get_day_events("test2", "1", "12.02.2024"))
 
     #print(db.find_color("100"))
-
 
 
 
