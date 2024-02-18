@@ -762,22 +762,80 @@ class joined_calendar_db:
         """
         day, month, year = date.split('.')
         month_event = self.get_events_of_calendar(calendar_id, month, year)
-        day_events = []
-        for x in month_event:
-            if x[0] == date:
-                ids = x[2]
-                for id in ids:
-                    participants = self.get_event_participants(id)
-                    if username in participants:
-                        sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
-                    else:
-                        sql = "SELECT start_hour, end_hour, date FROM " + self.event_info + " WHERE event_id = ?"
-                    self.db_cursor.execute(sql, (id,))
-                    info = self.db_cursor.fetchone()
-                    info = list(info) + [participants]
-                    day_events += [info]
-                break
+        day_events = None
+        if self._is_calendar_exists(calendar_id):
+            day_events = []
+            for x in month_event:
+                if x[0] == date:
+                    ids = x[2]
+                    for id in ids:
+                        day_events += [self.get_event_info(id, username)]
+                    break
         return day_events
+
+    def get_calendar_info(self, calendar_id):
+        """
+        return name and participants
+        :param calendar_id:
+        :return:
+        """
+
+        info = []
+        if self._is_calendar_exists(calendar_id):
+
+            participants = self.get_calendar_participants(calendar_id)
+            sql = "SELECT name, manager FROM " + self.calendars + " WHERE calendar_id = ?"
+            self.db_cursor.execute(sql, (calendar_id,))
+            name, manager = self.db_cursor.fetchone()
+
+            info = [name, manager, participants]
+        return info
+
+    def get_event_info(self, event_id, username):
+        """
+        get event info - name, participants, manager, start hour, end hour, date
+        :param event_id:
+        :param username
+        :return:
+        """
+        info = []
+        if self.is_event_exists(event_id):
+            participants = self.get_event_participants(event_id)
+            if username in participants:
+                sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
+            else:
+                sql = "SELECT start_hour, end_hour, date FROM " + self.event_info + " WHERE event_id = ?"
+            self.db_cursor.execute(sql, (event_id,))
+            info = self.db_cursor.fetchone()
+            info = list(info) + [participants]
+
+        return info
+
+    def get_some_event_info(self, event_id, calendar_id):
+        """
+        get event color (by participants color) and date
+        :param event_id:
+        :param calendar_id
+        :return:
+        """
+        info = []
+        if self._is_calendar_exists(calendar_id) and self.is_event_exists(event_id):
+            participants = self.get_calendar_participants(calendar_id)
+
+            set_participants = set(participants)
+            p = self.get_event_participants(event_id)
+            set_p = set(p)
+            both = set_p & set_participants
+            sql = "SELECT date FROM " + self.event_info + " WHERE event_id = ?"
+            self.db_cursor.execute(sql, (event_id,))
+            date = self.db_cursor.fetchone()[0]
+            if both:
+                if len(both) > 1:
+                    info = (date, self.joined_color)
+                else:
+                    both = list(both)
+                    info = (date, self.get_color(both[0], calendar_id))
+        return info
 
 
 if __name__ == '__main__':
@@ -820,8 +878,10 @@ if __name__ == '__main__':
     print(db.delete_event("2", "test1"))
     print(db.get_events_of_calendar("2", "02", "2024"))
     print(db.get_day_events("test2", "1", "12.02.2024"))
+    print(db.get_calendar_info("1"))
+    print(db.get_some_event_info("5", "1"))
+    print(db.get_some_event_info("1", "1"))
 
     #print(db.find_color("100"))
-
 
 
