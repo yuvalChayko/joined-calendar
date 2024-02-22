@@ -5,7 +5,7 @@ def unpack(data):
     :return: opcode and list of params
     """
     opcode = data[:2]
-    params = data[3:].split(",")
+    params = data[2:].split(",")
 
 def pack_login(status):
     """
@@ -13,7 +13,7 @@ def pack_login(status):
     :param status:
     :return:
     """
-    return f"00,{status}"
+    return f"00{status}"
 
 def pack_sign_up(status):
     """
@@ -21,7 +21,7 @@ def pack_sign_up(status):
     :param status:
     :return:
     """
-    return f"01,{status}"
+    return f"01{status}"
 
 def pack_new_calendar(status, id_or_not_users):
     """
@@ -32,7 +32,7 @@ def pack_new_calendar(status, id_or_not_users):
     """
     if status == "1":
         id_or_not_users = "^".join(id_or_not_users)
-    return f"02,{status},{id_or_not_users}"
+    return f"02{status},{id_or_not_users}"
 
 def pack_new_event(status, event_id):
     """
@@ -41,7 +41,7 @@ def pack_new_event(status, event_id):
     :param event_id:
     :return:
     """
-    return f"04,{status},{event_id}"
+    return f"04{status},{event_id}"
 
 def event_info(event_id, date, color):
     """
@@ -51,7 +51,7 @@ def event_info(event_id, date, color):
     :param color:
     :return:
     """
-    return f"05,{event_id},{date},{color}"
+    return f"05{event_id},{date},{color}"
 
 def pack_calendar_invitation(name, calendar_id, invited_by):
     """
@@ -61,7 +61,7 @@ def pack_calendar_invitation(name, calendar_id, invited_by):
     :param invited_by:
     :return:
     """
-    return f"10,{name},{calendar_id},{invited_by}"
+    return f"10{name},{calendar_id},{invited_by}"
 
 def pack_new_calendar_participant(status, calendar_id, username):
     """
@@ -71,7 +71,7 @@ def pack_new_calendar_participant(status, calendar_id, username):
     :param username:
     :return:
     """
-    return f"11,{status},{calendar_id},{username}"
+    return f"11{status},{calendar_id},{username}"
 
 def pack_event_invitation(calendar_id, event_id, name, invited_by, start, end, date):
     """
@@ -85,7 +85,7 @@ def pack_event_invitation(calendar_id, event_id, name, invited_by, start, end, d
     :param date:
     :return:
     """
-    return f"12,{calendar_id},{event_id},{name},{invited_by},{start},{end},{date}"
+    return f"12{calendar_id},{event_id},{name},{invited_by},{start},{end},{date}"
 
 def pack_event_invitation_succeed(status, username, name_event, name_calendar):
     """
@@ -96,7 +96,7 @@ def pack_event_invitation_succeed(status, username, name_event, name_calendar):
     :param name_calendar:
     :return:
     """
-    return f"13,{status},{username},{name_event},{name_calendar}"
+    return f"13{status},{username},{name_event},{name_calendar}"
 
 def pack_calendar_name_edit(status, calendar_id, name):
     """
@@ -106,7 +106,7 @@ def pack_calendar_name_edit(status, calendar_id, name):
     :param name:
     :return:
     """
-    return f"20,{status},{calendar_id},{name}"
+    return f"20{status},{calendar_id},{name}"
 
 def pack_event_name_edit(status, calendar_id, event_id , name):
     """
@@ -117,7 +117,7 @@ def pack_event_name_edit(status, calendar_id, event_id , name):
     :param name:
     :return:
     """
-    return f"21,{status},{calendar_id},{event_id},{name}"
+    return f"21{status},{calendar_id},{event_id},{name}"
 
 def pack_time_edit(status, calendar_id, event_id, start, end, date, participants):
     """
@@ -133,7 +133,7 @@ def pack_time_edit(status, calendar_id, event_id, start, end, date, participants
     """
     if status != "0":
         participants = "^".join(participants)
-    return f"22,{status},{calendar_id},{event_id},{start},{end},{date},{participants}"
+    return f"22{status},{calendar_id},{event_id},{start},{end},{date},{participants}"
 
 def pack_event_dalete(status, event_id):
     """
@@ -142,7 +142,7 @@ def pack_event_dalete(status, event_id):
     :param event_id:
     :return:
     """
-    return f"30,{status},{event_id}"
+    return f"30{status},{event_id}"
 
 def pack_exit_calendar(calendar_id, username):
     """
@@ -151,7 +151,7 @@ def pack_exit_calendar(calendar_id, username):
     :param username:
     :return:
     """
-    return f"31,{calendar_id},{username}"
+    return f"31{calendar_id},{username}"
 
 def pack_calendar_ids(calendar_ids):
     """
@@ -160,7 +160,7 @@ def pack_calendar_ids(calendar_ids):
     :return:
     """
     calendar_ids = "^".join(calendar_ids)
-    return f"40,{calendar_ids}"
+    return f"40{calendar_ids}"
 
 def pack_day_events(day_events):
     """
@@ -170,7 +170,7 @@ def pack_day_events(day_events):
     """
     day_events = ["^".join(x) for x in list(day_events)]
     day_events = "*".join(day_events)
-    return f"41,{day_events}"
+    return f"41{day_events}"
 
 def pack_month_events(month_events):
     """
@@ -180,7 +180,7 @@ def pack_month_events(month_events):
     """
     month_events = ["^".join(x) for x in list(month_events)]
     month_events = "*".join(month_events)
-    return f"42,{month_events}"
+    return f"42{month_events}"
 
 def pack_key(key):
     """
@@ -188,4 +188,4 @@ def pack_key(key):
     :param key:
     :return:
     """
-    return f"50,{key}"
+    return f"50{key}"
