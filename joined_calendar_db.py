@@ -272,17 +272,6 @@ class joined_calendar_db:
             print("event do not exists so cant add participant")
         return flag
 
-    def is_event_exists(self, id):
-        """
-        check if event exists
-        :param id:
-        :return:
-        """
-        sql = "SELECT event_id FROM " + self.event_info + " WHERE event_id = ?"
-
-        self.db_cursor.execute(sql, (id,))
-        return self.db_cursor.fetchone() is not None
-
     def is_participant_exists_in_event(self, id, username):
         """
         check if user is a participant in the event
@@ -799,7 +788,7 @@ class joined_calendar_db:
         :return:
         """
         info = []
-        if self.is_event_exists(event_id):
+        if self._is_event_exists(event_id):
             participants = self.get_event_participants(event_id)
             if username in participants:
                 sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
@@ -819,7 +808,7 @@ class joined_calendar_db:
         :return:
         """
         info = []
-        if self._is_calendar_exists(calendar_id) and self.is_event_exists(event_id):
+        if self._is_calendar_exists(calendar_id) and self._is_event_exists(event_id):
             participants = self.get_calendar_participants(calendar_id)
 
             set_participants = set(participants)
