@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import date
+import hashlib
 
 class joined_calendar_db:
 
@@ -75,7 +76,7 @@ class joined_calendar_db:
         self.db_cursor.execute(sql_table, (id,))
         return self.db_cursor.fetchone() is not None
 
-    def _is_user_exists(self, user):
+    def is_user_exists(self, user):
         """
         check if user exists
         :param user: str
@@ -155,11 +156,11 @@ class joined_calendar_db:
         :return: if user not exists (bool)
         """
 
-        flag = self._is_user_exists(username)
+        flag = self.is_user_exists(username)
 
         if not flag:
             sql_table = "INSERT INTO " + self.users + " VALUES(?,?,?)"
-            self.db_cursor.execute(sql_table, (username, hash(password), phone,))
+            self.db_cursor.execute(sql_table, (username, hashlib.sha256(password.encode()).digest(), phone,))
             self.db_conn.commit()
 
         return not flag
@@ -188,7 +189,7 @@ class joined_calendar_db:
         :return:
         """
         flag = False
-        if self._is_calendar_exists(id) and self._is_user_exists(invited) and self._is_user_exists(invited_by):
+        if self._is_calendar_exists(id) and self.is_user_exists(invited) and self.is_user_exists(invited_by):
             if not self.is_calendar_invitation_exists(id, invited):
                 sql_table = "INSERT INTO " + self.calendar_invitations + " VALUES(?,?,?)"
                 self.db_cursor.execute(sql_table, (invited, invited_by, id,))
@@ -272,17 +273,6 @@ class joined_calendar_db:
             print("event do not exists so cant add participant")
         return flag
 
-    def is_event_exists(self, id):
-        """
-        check if event exists
-        :param id:
-        :return:
-        """
-        sql = "SELECT event_id FROM " + self.event_info + " WHERE event_id = ?"
-
-        self.db_cursor.execute(sql, (id,))
-        return self.db_cursor.fetchone() is not None
-
     def is_participant_exists_in_event(self, id, username):
         """
         check if user is a participant in the event
@@ -334,7 +324,7 @@ class joined_calendar_db:
         :return: bool
         """
         flag = False
-        if self._is_user_exists(username):
+        if self.is_user_exists(username):
             sql = "SELECT start_hour, end_hour FROM " + self.event_info + " WHERE manager = ? AND date = ?"
             self.db_cursor.execute(sql, (username, date,))
             hours = self.db_cursor.fetchall()
@@ -360,7 +350,7 @@ class joined_calendar_db:
         :return:
         """
         flag = False
-        if self._is_event_exists(event_id) and self._is_user_exists(invited) and self._is_user_exists(invited_by):
+        if self._is_event_exists(event_id) and self.is_user_exists(invited) and self.is_user_exists(invited_by):
             if not self.is_event_invitation_exists(event_id, invited) and self.is_participant_exists_in_calendar(calendar_id, invited):
                 sql_table = "INSERT INTO " + self.event_invitations + " VALUES(?,?,?,?)"
                 self.db_cursor.execute(sql_table, (invited, invited_by, calendar_id, event_id,))
@@ -421,7 +411,7 @@ class joined_calendar_db:
 
         sql = "SELECT password FROM " + self.users + " WHERE username = ?"
         self.db_cursor.execute(sql, (username,))
-        password = self.db_cursor.fetchone()
+        password = self.db_cursor.fetchone()[0]
         if password == None:
             password = "-1"
         return password
@@ -534,7 +524,7 @@ class joined_calendar_db:
         :param username:
         :return:
         """
-        if self._is_calendar_exists(calendar_id) and self._is_user_exists(username) and self.is_participant_exists_in_calendar(calendar_id, username):
+        if self._is_calendar_exists(calendar_id) and self.is_user_exists(username) and self.is_participant_exists_in_calendar(calendar_id, username):
             if self.is_manager_calander(calendar_id, username):
                 # delete calendar
                 sql = ["DELETE FROM " + self.calendar_invitations + " WHERE calendar_id = ?",
@@ -799,7 +789,7 @@ class joined_calendar_db:
         :return:
         """
         info = []
-        if self.is_event_exists(event_id):
+        if self._is_event_exists(event_id):
             participants = self.get_event_participants(event_id)
             if username in participants:
                 sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
@@ -819,7 +809,7 @@ class joined_calendar_db:
         :return:
         """
         info = []
-        if self._is_calendar_exists(calendar_id) and self.is_event_exists(event_id):
+        if self._is_calendar_exists(calendar_id) and self._is_event_exists(event_id):
             participants = self.get_calendar_participants(calendar_id)
 
             set_participants = set(participants)
@@ -883,4 +873,5 @@ if __name__ == '__main__':
     print(db.get_some_event_info("1", "1"))
 
     #print(db.find_color("100"))
+
 
