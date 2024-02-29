@@ -85,7 +85,8 @@ class joined_calendar_db:
         sql_table = "SELECT username FROM " + self.users + " WHERE username = ?"
 
         self.db_cursor.execute(sql_table, (user,))
-        return self.db_cursor.fetchone() is not None
+        user = self.db_cursor.fetchone()
+        return user is not None
 
     def add_calendar(self, name, manager):
         """
@@ -97,8 +98,6 @@ class joined_calendar_db:
         sql_table = "INSERT INTO " + self.calendars + "(name,manager)  VALUES(?,?)"
         self.db_cursor.execute(sql_table, (name, manager,))
         self.db_conn.commit()
-
-        "add manager to participant table"
 
         sql = "SELECT calendar_id from " + self.calendars + " ORDER BY calendar_id DESC LIMIT (1)"
         self.db_cursor.execute(sql)
@@ -873,5 +872,3 @@ if __name__ == '__main__':
     print(db.get_some_event_info("1", "1"))
 
     #print(db.find_color("100"))
-
-

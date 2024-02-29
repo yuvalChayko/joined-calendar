@@ -58,5 +58,3 @@ if __name__ == '__main__':
     msg = cry.encrypt("My name is meryy")
     print(msg)
     print(cry.decrypt(msg))
-
-
