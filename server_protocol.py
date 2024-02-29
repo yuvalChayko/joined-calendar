@@ -34,18 +34,23 @@ def pack_new_calendar(status, id_or_not_users):
     """
     if status == "1":
         id_or_not_users = "^".join(id_or_not_users)
+
     return f"02{status},{id_or_not_users}"
 
-def pack_new_event(status, event_id):
+def pack_new_event(status, id_or_not_existing_participants):
     """
     pack msg according to the protocol
     :param status:
-    :param event_id:
+    :param id_or_not_existing_participants:
     :return:
     """
-    return f"04{status},{event_id}"
+    if status == "1":
+        if id_or_not_existing_participants:
+            id_or_not_existing_participants = "^".join(id_or_not_existing_participants)
 
-def event_info(event_id, date, color):
+    return f"04{status},{id_or_not_existing_participants}"
+
+def pack_event_info(event_id, date, color):
     """
     pack msg according to the protocol
     :param event_id:

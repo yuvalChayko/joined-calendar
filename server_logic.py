@@ -75,20 +75,47 @@ def handle_new_calendar(ip, params):
         comm.send(ip, protocol.pack_new_calendar("1", not_existing_participants))
 
 
-    def handle_new_event(ip, params):
-        """
+def handle_new_event(ip, params):
+    """
+    check if time is available and if so add event. add invitations if participants in the calendar. send to participants that the calendar is open on their screen the info(color, date)
+    :param ip:
+    :param params: calendar_id, name, start, end, date, participants
+    :return:
+    """
+    calendar_id, name, start, end, date, participants = params
+    participants = participants.split("^")
+    username = [i for i in current_users if current_users[i] == ip][0]
+    not_existing_participants = [i for i in participants if not db.is_user_exists(i)]
+    if not not_existing_participants:
+        not_in_calendar = [i for i in participants if not db.is_participant_exists_in_calendar(calendar_id, i)]
+    not_existing_participants = list(set(not_existing_participants) & set(not_in_calendar))
+    if not_existing_participants:
+        comm.send(ip, protocol.pack_new_event("1", not_existing_participants))
+    else:
+        if not db.check_is_time_available(username, start, end, date):
+            event_id = db.add_event(name, participants, calendar_id, username, start, end, date)
+            comm.send(ip, protocol.pack_new_event("0", event_id))
+            for p in participants:
+                db.add_event_invitation(event_id, calendar_id, p, username)
+                if p in current_users:
+                    comm.send(current_users[p], protocol.pack_event_invitation(calendar_id, event_id, name, username, start, end, date))
+            color = db.get_some_event_info(event_id, calendar_id)[0]
+            comm.send(ip, protocol.pack_event_info(event_id, date, color))
+            for user in current_open_calendars:
+                month = date[3:]
+                if month == current_open_calendars[user][1] and db.is_participant_exists_in_calendar(current_open_calendars[user][0]):
+                    date, color = db.get_some_event_info(event_id, current_open_calendars[user][0])
+                    comm.send(current_users[user], protocol.pack_event_info(event_id, date, color))
 
-        :param ip:
-        :param params:
-        :return:
-        """
-        pass
+        else:
+            comm.send(ip, protocol.pack_new_event("1", ""))
+
 
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ServerComm(4500, msg_q)
     db = data_base()
-    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar}
+    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event}
     current_users = {} # username: ip
     current_open_calendars = {} # user: [calendar_id, month and year, day]
     while True:

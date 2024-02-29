@@ -82,21 +82,38 @@ def new_calendar(name, participants):
 
 def handle_new_event(params):
     """
-
-    :param params:
+    if succeed add to screen, and if not show why.
+    :param params: status, id_or_not_existing participants
     :return:
     """
-    pass
+    status, id_or_not_existing_participants = params
+    print(f"here {id_or_not_existing_participants}")
+    if status == "1":
+        id_or_not_existing_participants = id_or_not_existing_participants.split("^")
+        print(f"here {id_or_not_existing_participants}hi")
+        if id_or_not_existing_participants != "":
+            print("couldnt open event because", ", ".join(id_or_not_existing_participants), "do not exist in calendar")
+        else:
+            print("time isnt available")
+    else:
+        print("succeed - return to calendar screen")
 
 
-def new_event():
-    pass
+def new_event(calendar_id, name, participants, start, end, date):
+    """
+
+    :return:
+    """
+    if "^" in name or "*" in name:
+        print("name not valid")
+    else:
+        comm.send(protocol.pack_new_event(calendar_id, name, start, end, date, participants))
 
 
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ClientComm('127.0.0.1', 4500, msg_q)
-    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar}
+    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event}
     month_event = []
     current_calendar = ""
     current_month = ""
@@ -106,6 +123,7 @@ if __name__ == '__main__':
     login("test1", "1234")
     # sign_up("test4", "1234", "4444444444")
     new_calendar("hello", ["test5", "test6"])
+    new_event("1", "hello", ["test2"], "20:00", "21:00", "29.02.2024")
     while True:
         msg = msg_q.get()
         opcode, params = protocol.unpack(msg)

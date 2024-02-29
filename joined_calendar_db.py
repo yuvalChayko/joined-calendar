@@ -228,7 +228,6 @@ class joined_calendar_db:
         """
         event_id = ""
         if self._is_calendar_exists(calendar_id):
-
             if self.is_participants_in_calendar(participants, calendar_id):
                 if self.check_is_time_available(manager, start, end, date):
                     sql = "INSERT INTO " + self.event_info + "(calendar_id, name, manager, start_hour, end_hour, date) VALUES(?,?,?,?,?,?)"
@@ -808,7 +807,11 @@ class joined_calendar_db:
         :return:
         """
         info = []
+        print(self._is_calendar_exists(calendar_id))
+        print(event_id)
+        print(self._is_event_exists(event_id))
         if self._is_calendar_exists(calendar_id) and self._is_event_exists(event_id):
+            print("hi")
             participants = self.get_calendar_participants(calendar_id)
 
             set_participants = set(participants)
@@ -819,11 +822,12 @@ class joined_calendar_db:
             self.db_cursor.execute(sql, (event_id,))
             date = self.db_cursor.fetchone()[0]
             if both:
+                print("hello")
                 if len(both) > 1:
-                    info = (date, self.joined_color)
+                    info = [date, self.joined_color]
                 else:
                     both = list(both)
-                    info = (date, self.get_color(both[0], calendar_id))
+                    info = [date, self.get_color(both[0], calendar_id)]
         return info
 
 
