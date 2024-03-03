@@ -117,6 +117,14 @@ def pack_invitations(invitations):
     invitations = "*".join(invitations)
     return f"14{invitations}"
 
+def pack_is_calendar_invitation_work(status):
+    """
+    pack msg according to the protocol
+    :param status:
+    :return:
+    """
+    return f"15{status}"
+
 def pack_calendar_name_edit(status, calendar_id, name):
     """
     pack msg according to the protocol

@@ -74,7 +74,7 @@ def new_calendar(name, participants):
     :param participants:
     :return:
     """
-    if name == "personal" or "^" in name or "*" in name:
+    if name == "personal" or "^" in name or "*" in name or "," in name:
         print("name not valid")
     else:
         comm.send(protocol.pack_new_calendar(name, participants))
@@ -87,11 +87,9 @@ def handle_new_event(params):
     :return:
     """
     status, id_or_not_existing_participants = params
-    print(f"here {id_or_not_existing_participants}")
     if status == "1":
-        id_or_not_existing_participants = id_or_not_existing_participants.split("^")
-        print(f"here {id_or_not_existing_participants}hi")
         if id_or_not_existing_participants != "":
+            id_or_not_existing_participants = id_or_not_existing_participants.split("^")
             print("couldnt open event because", ", ".join(id_or_not_existing_participants), "do not exist in calendar")
         else:
             print("time isnt available")
@@ -104,26 +102,78 @@ def new_event(calendar_id, name, participants, start, end, date):
 
     :return:
     """
-    if "^" in name or "*" in name:
+    if "^" in name or "*" in name or "," in name:
         print("name not valid")
     else:
         comm.send(protocol.pack_new_event(calendar_id, name, start, end, date, participants))
 
 
+def handle_event_info(params):
+    """
+    put on screen dot that represent the event. add event to month_event and if already exists, replace it.
+    :param date:
+    :param color:
+    :param event_id:
+    :return:
+    """
+    event_id, date, color = params
+    if event_id in month_event.keys():
+        del month_event[event_id]
+        print("remove events dot from screen")
+    month = date[3: 5]
+    if month == current_month:
+        month_event[event_id] = [color, date]
+        print("add events dot to screen")
+
+
+def handle_is_calendar_invitation_work(params):
+    """
+    show if invitation succeed and if not why
+    :param params: status
+    :return:
+    """
+    status = params[0]
+    if status == "0":
+        print("invitation succeed")
+    elif status == "1":
+        print("couldnt add invitation because calendar do not exists")
+    elif status == "2":
+        print("couldnt add invitation because you are not the manager")
+    elif status == "3":
+        print("couldnt add invitation because user do not exists")
+    elif status == "4":
+        print("couldnt add invitation because username already exists in calendar")
+    elif status == "5":
+        print("couldnt add invitation because invitation already exists")
+
+
+def handle_calendar_invitation(params):
+    """
+    add invitations to invitation list and notify the user
+    :param params: name, calendar_id, invited_by
+    :return:
+    """
+    name, calendar_id, invited_by = params
+    print("got new invitation")
+    invitations.append([name, calendar_id, invited_by])
+
+
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ClientComm('127.0.0.1', 4500, msg_q)
-    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event}
-    month_event = []
+    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
+               "05": handle_event_info}
     current_calendar = ""
+    month_event = {}  # id: [color, date]
     current_month = ""
     current_day = ""
     user_calendars = []
+    invitations = []
 
     login("test1", "1234")
-    # sign_up("test4", "1234", "4444444444")
-    new_calendar("hello", ["test5", "test6"])
-    new_event("1", "hello", ["test2"], "20:00", "21:00", "29.02.2024")
+    sign_up("test4", "1234", "4444444444")
+    new_calendar("hello", ["test2", "test3"])
+    new_event("1", "hello", ["test2"], "20:00", "21:00", "09.03.2024")
     while True:
         msg = msg_q.get()
         opcode, params = protocol.unpack(msg)

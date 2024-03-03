@@ -357,7 +357,7 @@ class joined_calendar_db:
             else:
                 print("invitation already exists")
         else:
-            print("the calendar doesnt exists so cant add invitation or user not exists")
+            print("the event doesnt exists so cant add invitation or user not exists")
         return flag
 
     def is_event_invitation_exists(self, event_id, invited):
@@ -701,7 +701,6 @@ class joined_calendar_db:
             for t in temp:
                 ids += [t[0]]
                 dates += [t[1]]
-            print(ids)
             for id in ids:
                 p = self.get_event_participants(id)
                 set_p = set(p)
@@ -779,6 +778,7 @@ class joined_calendar_db:
             info = [name, manager, participants]
         return info
 
+
     def get_event_info(self, event_id, username):
         """
         get event info - name, participants, manager, start hour, end hour, date
@@ -807,11 +807,7 @@ class joined_calendar_db:
         :return:
         """
         info = []
-        print(self._is_calendar_exists(calendar_id))
-        print(event_id)
-        print(self._is_event_exists(event_id))
         if self._is_calendar_exists(calendar_id) and self._is_event_exists(event_id):
-            print("hi")
             participants = self.get_calendar_participants(calendar_id)
 
             set_participants = set(participants)
@@ -822,7 +818,6 @@ class joined_calendar_db:
             self.db_cursor.execute(sql, (event_id,))
             date = self.db_cursor.fetchone()[0]
             if both:
-                print("hello")
                 if len(both) > 1:
                     info = [date, self.joined_color]
                 else:

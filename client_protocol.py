@@ -71,15 +71,6 @@ def pack_new_event(calendar_id, name, start, end, date, participants):
     participants = "^".join(participants)
     return f"04{calendar_id},{name},{start},{end},{date},{participants}"
 
-def pack_event_info(calendar_id, event_id):
-    """
-    pack msg according to the protocol
-    :param calendar_id:
-    :param event_id:
-    :return:
-    """
-    return f"05{calendar_id},{event_id}"
-
 def pack_calendar_invitation(calendar_id, username):
     """
     pack msg according to the protocol
