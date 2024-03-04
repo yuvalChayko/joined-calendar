@@ -22,13 +22,13 @@ def handle_login(ip, params):
     elif username in current_users.keys():
         status = 3
     else:
-        msgs_to_send += [db.get_user_calendars(username)]
-        msgs_to_send += [db.get_calendar_invitations(username).append(db.get_event_invitations(username))]
-    comm.send(ip, protocol.pack_login(status))
-    if len(msgs_to_send) != 0:
-        comm.send(ip, protocol.pack_calendar_ids(msgs_to_send[0]))
-        comm.send(ip, protocol.pack_invitations(msgs_to_send[1]))
+        msgs_to_send += [protocol.pack_calendar_ids(db.get_user_calendars(username))]
+        if db.get_calendar_invitations(username) or db.get_event_invitations(username):
+            msgs_to_send += [protocol.pack_there_is_an_invitation()]
         current_users[username] = ip
+    comm.send(ip, protocol.pack_login(status))
+    for msg in msgs_to_send:
+        comm.send(ip, msg)
 
 
 def handle_sign_up(ip, params):
@@ -59,8 +59,6 @@ def handle_new_calendar(ip, params):
     :param params: name, participants
     :return:
     """
-    print(current_users)
-    print(i for i in current_users)
     username = [i for i in current_users if current_users[i] == ip][0]
     name, participants = params
     participants = participants.split("^")
@@ -71,7 +69,7 @@ def handle_new_calendar(ip, params):
         for i in participants:
             db.add_calendar_invitation(id, username, i)
             if i in current_users:
-                comm.send(current_users[i], protocol.pack_calendar_invitation(name, id, username))
+                comm.send(current_users[i], protocol.pack_there_is_an_invitation())
     else:
         comm.send(ip, protocol.pack_new_calendar("1", not_existing_participants))
 
@@ -99,7 +97,7 @@ def handle_new_event(ip, params):
             for p in participants:
                 db.add_event_invitation(event_id, calendar_id, p, username)
                 if p in current_users:
-                    comm.send(current_users[p], protocol.pack_event_invitation(calendar_id, event_id, name, username, start, end, date))
+                    comm.send(current_users[p], protocol.pack_there_is_an_invitation())
             date, color = get_event_info(event_id, calendar_id)
             comm.send(ip, protocol.pack_event_info(event_id, date, color))
             for user in current_open_calendars:
@@ -132,19 +130,19 @@ def handle_calendar_invitation(ip, params):
     invited_by = [i for i in current_users if current_users[i] == ip][0]
     if db._is_calendar_exists(calendar_id):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("1"))
-    elif db.is_manager_calander(calendar_id, invited_by):
+    elif not db.is_manager_calander(calendar_id, invited_by):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("2"))
-    elif db.is_user_exists(username):
+    elif not db.is_user_exists(username):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("3"))
-    elif not db.is_participant_exists_in_calendar(username):
+    elif db.is_participant_exists_in_calendar(username):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("4"))
-    elif not db.is_calendar_invitation_exists(calendar_id, username):
+    elif db.is_calendar_invitation_exists(calendar_id, username):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("5"))
     else:
         comm.send(ip, protocol.pack_is_calendar_invitation_work("0"))
         db.add_calendar_invitation(calendar_id, invited_by, username)
         if username in current_users.keys():
-            comm.send(current_users[username], protocol.pack_calendar_invitation(db.get_calendar_info(calendar_id)[0], calendar_id, invited_by))
+            comm.send(current_users[username], protocol.pack_there_is_an_invitation())
 
 
 def handle_is_calendar_accepted(ip, params):
@@ -162,13 +160,41 @@ def handle_is_calendar_accepted(ip, params):
         db.add_calendar_participant(calendar_id, username)
         today = datetime.now()
         info = db.get_calendar_info(calendar_id)
-        print(info, "info")
         comm.send(ip, protocol.pack_new_calendar(status, [calendar_id, info[0], info[1], info[2]]))
         comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, today.month, today.year)))
         for user in current_open_calendars:
             if current_open_calendars[user][0] == calendar_id:
                 comm.send(current_users[user], protocol.pack_new_calendar_participant(status, calendar_id, username))
                 comm.send((current_users[user], protocol.pack_month_events(db.get_events_of_calendar(calendar_id, current_open_calendars[user][1][:2], current_open_calendars[user][1][3:]))))
+
+
+def handle_event_invitation(ip, params):
+    """
+    check if username is manager and if username, calendar and event exist and if username is participant in the calendar and if invitation not already exists and username not already participant.
+    if so, add invitation to table and if username in current usernames, send the invitation.
+    :param ip:
+    :param params: calendar_id, event_id, username
+    :return:
+    """
+    pass
+    # calendar_id, event_id, username = params
+    # invited_by = [i for i in current_users if current_users[i] == ip][0]
+    # if db._is_calendar_exists(calendar_id):
+    #     comm.send(ip, protocol.pack_is_calendar_invitation_work("1"))
+    # elif db.is_manager_event(event_id, invited_by):
+    #     comm.send(ip, protocol.pack_is_calendar_invitation_work("2"))
+    # elif db.is_user_exists(username):
+    #     comm.send(ip, protocol.pack_is_calendar_invitation_work("3"))
+    # elif not db.is_participant_exists_in_calendar(username):
+    #     comm.send(ip, protocol.pack_is_calendar_invitation_work("4"))
+    # elif not db.is_event_invitation_exists(event_id, username):
+    #     comm.send(ip, protocol.pack_is_calendar_invitation_work("5"))
+    # else:
+    #     comm.send(ip, protocol.pack_is_calendar_invitation_work("0"))
+    #     db.add_calendar_invitation(calendar_id, invited_by, username)
+    #     if username in current_users.keys():
+    #         comm.send(current_users[username],
+    #                   protocol.pack_there_is_an_invitation())
 
 
 if __name__ == '__main__':

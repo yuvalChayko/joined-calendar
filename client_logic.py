@@ -154,17 +154,6 @@ def handle_is_calendar_invitation_work(params):
         print("couldnt add invitation because invitation already exists")
 
 
-def handle_calendar_invitation(params):
-    """
-    add invitations to invitation list and notify the user
-    :param params: name, calendar_id, invited_by
-    :return:
-    """
-    name, calendar_id, invited_by = params
-    print("got new invitation")
-    invitations.append([name, calendar_id, invited_by])
-
-
 def invite_to_calendar(username, calendar_id):
     """
     send invitation to server
@@ -195,6 +184,15 @@ def response_to_calendar_invitation(status, calendar_id):
     :return:
     """
     comm.send((protocol.pack_calendar_response(status, calendar_id)))
+
+
+def handle_there_is_an_invitation(params):
+    """
+    show that there is invitations
+    :param params:
+    :return:
+    """
+    print("there is an invitation")
 
 
 if __name__ == '__main__':

@@ -62,15 +62,12 @@ def pack_event_info(event_id, date, color):
     """
     return f"05{event_id},{date},{color}"
 
-def pack_calendar_invitation(name, calendar_id, invited_by):
+def pack_there_is_an_invitation():
     """
     pack msg according to the protocol
-    :param name:
-    :param calendar_id:
-    :param invited_by:
     :return:
     """
-    return f"10{name},{calendar_id},{invited_by}"
+    return f"10"
 
 def pack_new_calendar_participant(status, calendar_id, username):
     """
@@ -81,20 +78,6 @@ def pack_new_calendar_participant(status, calendar_id, username):
     :return:
     """
     return f"11{status},{calendar_id},{username}"
-
-def pack_event_invitation(calendar_id, event_id, name, invited_by, start, end, date):
-    """
-    pack msg according to the protocol
-    :param calendar_id:
-    :param event_id:
-    :param name:
-    :param invited_by:
-    :param start:
-    :param end:
-    :param date:
-    :return:
-    """
-    return f"12{calendar_id},{event_id},{name},{invited_by},{start},{end},{date}"
 
 def pack_event_invitation_succeed(status, username, name_event, name_calendar):
     """
