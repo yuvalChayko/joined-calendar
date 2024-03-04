@@ -59,17 +59,24 @@ def handle_new_calendar(params):
     :param params:
     :return:
     """
-    status, id_or_not_existing_participants = params
+
+    status, data_or_not_existing_participants = params
+
     if status == "0":
-        user_calendars.append(id_or_not_existing_participants)
-        print(f"open {id_or_not_existing_participants}")
+        calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
+        participants = participants.split("*")
+        current_calendar.append([calendar_id, name, manager, participants])
+        user_calendars.append(calendar_id)
+        print(current_calendar)
+        print(user_calendars)
+        print(f"new calendar {data_or_not_existing_participants}")
     else:
-        print("couldnt open calendar because", ", ".join(id_or_not_existing_participants.split("^")), "do not exist")
+        print("couldnt open calendar because", ", ".join(data_or_not_existing_participants.split("^")), "do not exist")
 
 
 def new_calendar(name, participants):
     """
-
+    send to server to add a new calendar
     :param name:
     :param participants:
     :return:
@@ -158,12 +165,44 @@ def handle_calendar_invitation(params):
     invitations.append([name, calendar_id, invited_by])
 
 
+def invite_to_calendar(username, calendar_id):
+    """
+    send invitation to server
+    :param username:
+    :param calendar_id:
+    :return:
+    """
+    comm.send(protocol.pack_calendar_invitation(calendar_id, username))
+
+
+def handle_add_participant_to_calendar(params):
+    """
+    if the calendar is the current calendar on screen, add participant to participant list and show on screen
+    :param params:
+    :return:
+    """
+    status, calendar_id, username = params
+    if current_calendar[0] == calendar_id:
+        current_calendar[1].append(username)
+        print(f"{username} joined the calendar")
+
+
+def response_to_calendar_invitation(status, calendar_id):
+    """
+    send the response
+    :param status:
+    :param calendar_id:
+    :return:
+    """
+    comm.send((protocol.pack_calendar_response(status, calendar_id)))
+
+
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ClientComm('127.0.0.1', 4500, msg_q)
     opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
                "05": handle_event_info}
-    current_calendar = ""
+    current_calendar = [] # id, participants, name
     month_event = {}  # id: [color, date]
     current_month = ""
     current_day = ""
@@ -173,7 +212,7 @@ if __name__ == '__main__':
     login("test1", "1234")
     sign_up("test4", "1234", "4444444444")
     new_calendar("hello", ["test2", "test3"])
-    new_event("1", "hello", ["test2"], "20:00", "21:00", "09.03.2024")
+    new_event("1", "hello", ["test2"], "20:00", "21:00", "11.03.2024")
     while True:
         msg = msg_q.get()
         opcode, params = protocol.unpack(msg)

@@ -101,7 +101,7 @@ class joined_calendar_db:
 
         sql = "SELECT calendar_id from " + self.calendars + " ORDER BY calendar_id DESC LIMIT (1)"
         self.db_cursor.execute(sql)
-        id = self.db_cursor.fetchone()[0]
+        id = str(self.db_cursor.fetchone()[0])
         self.add_calendar_participant(id, manager)
         return id
 

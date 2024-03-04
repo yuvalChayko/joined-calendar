@@ -25,17 +25,19 @@ def pack_sign_up(status):
     """
     return f"01{status}"
 
-def pack_new_calendar(status, id_or_not_users):
+def pack_new_calendar(status, data_or_not_existing_participants):
     """
     pack msg according to the protocol
     :param status:
-    :param id_or_not_users:
+    :param data_or_not_existing_participants:
     :return:
     """
-    if status == "1":
-        id_or_not_users = "^".join(id_or_not_users)
+    if status == "0":
+        data_or_not_existing_participants[3] = "*".join(data_or_not_existing_participants[3])
+    print(data_or_not_existing_participants)
+    data_or_not_existing_participants = "^".join(data_or_not_existing_participants)
 
-    return f"02{status},{id_or_not_users}"
+    return f"02{status},{data_or_not_existing_participants}"
 
 def pack_new_event(status, id_or_not_existing_participants):
     """

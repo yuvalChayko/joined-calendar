@@ -67,7 +67,7 @@ def handle_new_calendar(ip, params):
     not_existing_participants = [i for i in participants if not db.is_user_exists(i)]
     if not not_existing_participants:
         id = db.add_calendar(name, username)
-        comm.send(ip, protocol.pack_new_calendar("0", id))
+        comm.send(ip, protocol.pack_new_calendar("0", [id, name, username, [username]]))
         for i in participants:
             db.add_calendar_invitation(id, username, i)
             if i in current_users:
@@ -161,6 +161,9 @@ def handle_is_calendar_accepted(ip, params):
     if status == "0":
         db.add_calendar_participant(calendar_id, username)
         today = datetime.now()
+        info = db.get_calendar_info(calendar_id)
+        print(info, "info")
+        comm.send(ip, protocol.pack_new_calendar(status, [calendar_id, info[0], info[1], info[2]]))
         comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, today.month, today.year)))
         for user in current_open_calendars:
             if current_open_calendars[user][0] == calendar_id:
