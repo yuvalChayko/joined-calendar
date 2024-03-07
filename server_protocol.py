@@ -52,15 +52,14 @@ def pack_new_event(status, id_or_not_existing_participants):
 
     return f"04{status},{id_or_not_existing_participants}"
 
-def pack_event_info(event_id, date, color):
+def pack_event_info(date, color):
     """
     pack msg according to the protocol
-    :param event_id:
     :param date:
     :param color:
     :return:
     """
-    return f"05{event_id},{date},{color}"
+    return f"05{date},{color}"
 
 def pack_there_is_an_invitation():
     """
@@ -131,21 +130,18 @@ def pack_event_name_edit(status, calendar_id, event_id , name):
     """
     return f"21{status},{calendar_id},{event_id},{name}"
 
-def pack_time_edit(status, calendar_id, event_id, start, end, date, participants):
+def pack_time_edit(status, calendar_id, event_id, time_or_participants):
     """
     pack msg according to the protocol
     :param status:
     :param calendar_id:
     :param event_id:
-    :param start:
-    :param end:
-    :param date:
-    :param participants:
+    :param time_or_participants:
     :return:
     """
-    if status != "0":
-        participants = "^".join(participants)
-    return f"22{status},{calendar_id},{event_id},{start},{end},{date},{participants}"
+
+    time_or_participants = "^".join(time_or_participants)
+    return f"22{status},{calendar_id},{event_id},{time_or_participants}"
 
 def pack_event_dalete(status, event_id):
     """

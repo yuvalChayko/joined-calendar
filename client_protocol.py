@@ -99,15 +99,14 @@ def pack_event_invitation(calendar_id, event_id, username):
     """
     return f"12{calendar_id},{event_id},{username}"
 
-def pack_event_response(status, calendar_id, event_id):
+def pack_event_response(status, event_id):
     """
     pack msg according to the protocol
     :param status:
-    :param calendar_id:
     :param event_id:
     :return:
     """
-    return f"13{status},{calendar_id},{event_id}"
+    return f"13{status},{event_id}"
 
 def pack_invitations_request():
     """

@@ -766,7 +766,6 @@ class joined_calendar_db:
         :param calendar_id:
         :return:
         """
-
         info = []
         if self._is_calendar_exists(calendar_id):
 
@@ -778,6 +777,40 @@ class joined_calendar_db:
             info = [name, manager, participants]
         return info
 
+    def get_day_color(self, date, calendar_id):
+        """
+        get day color
+        :param date:
+        :param calendar_id:
+        :return:
+        """
+        day_color = []
+        sql = "SELECT event_id FROM " + self.event_info + " WHERE date = ?"
+        self.db_cursor.execute(sql, (date,))
+        event_ids = self.db_cursor.fetchall()
+        event_ids = [i[0] for i in event_ids]
+        for id in event_ids:
+            temp = self.get_some_event_info(id, calendar_id)
+            if len(temp) != 0:
+                if len(day_color) == 0:
+                    day_color = temp
+                    if temp[1] == 'BLACK':
+                        break
+                else:
+                    if temp[1] != day_color[1]:
+                        day_color[1] = 'BLACK'
+                        break
+        return day_color
+
+    def get_event_date(self, event_id):
+        """
+        get date of event
+        :param event_id:
+        :return:
+        """
+        sql = "SELECT date FROM " + self.event_info + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (event_id,))
+        return self.db_cursor.fetchone()[0]
 
     def get_event_info(self, event_id, username):
         """
@@ -826,6 +859,18 @@ class joined_calendar_db:
         return info
 
 
+    def get_calendar_from_event(self, event_id):
+        """
+        return id of the calendar that the event was created in
+        :param event_id:
+        :return:
+        """
+        sql = "SELECT calendar_id FROM " + self.event_info + " WHERE event_id = ?"
+        self.db_cursor.execute(sql, (event_id,))
+        return self.db_cursor.fetchone()[0]
+
+
+
 if __name__ == '__main__':
     db = joined_calendar_db()
     print(db.add_user('test1', '1234', "1111111111"))
@@ -868,6 +913,11 @@ if __name__ == '__main__':
     print(db.get_day_events("test2", "1", "12.02.2024"))
     print(db.get_calendar_info("1"))
     print(db.get_some_event_info("5", "1"))
-    print(db.get_some_event_info("1", "1"))
+    print(f"{db.get_some_event_info('1', '2')} here")
+    print(db.get_day_color("12.02.2024", "1"))
+    print(db.get_day_color("12.02.2024", "2"))
+    print(db.get_day_color("10.02.2024", "1"))
+    print(db.get_day_color("13.02.2024", "2"))
+
 
     #print(db.find_color("100"))
