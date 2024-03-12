@@ -310,9 +310,10 @@ def change_time(event_id, start, end, date):
     else:
         print("not valid time")
 
+
 def handle_time_change(params):
     """
-    shoe change of time or show why couldnt change
+    show change of time or show why couldnt change
     :param params: status, calendar_id, event_id, time_or_participants
     :return:
     """
@@ -325,6 +326,30 @@ def handle_time_change(params):
         print("time change succeed")
     else:
         print("event do not exist so cant change its time")
+
+
+def delete_event(event_id):
+    """
+    try to delete the event
+    :param event_id:
+    :return:
+    """
+    comm.send(protocol.pack_event_delete(event_id))
+
+
+def handle_delete_event(params):
+    """
+    show if succeed and if not why
+    :param params: status, event_id
+    :return:
+    """
+    status, event_id = params
+    if status == "0":
+        print("succeed")
+    elif status == "1":
+        print("cant delete event because you are not the manager")
+    else:
+        print("cant delete event because event do not exist")
 
 
 if __name__ == '__main__':

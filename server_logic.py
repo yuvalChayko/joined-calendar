@@ -309,6 +309,54 @@ def handle_time_change(ip, params):
         comm.send(ip, protocol.pack_time_edit("3", "", event_id, []))
 
 
+def handle_delete_event(ip, params):
+    """
+    delete event from table and send it to the users who are currently looking on the month of the event and the event is on their calendar
+    :param params: event_id
+    :return:
+    """
+    event_id = params[0]
+    username = [i for i in current_users if current_users[i] == ip][0]
+    if db._is_event_exists(event_id) and db.is_manager_event(event_id, username):
+        date_of_event = db.get_event_date(event_id)
+        month_year = date_of_event[3:]
+        participants = set(db.get_event_participants(event_id))
+        db.delete_event(event_id, username)
+        comm.send(ip, protocol.pack_event_dalete("0", event_id))
+        for user in current_users:
+            if current_users[user][1] == month_year:
+                calendar_id = current_users[user][0]
+                p = set(db.get_calendar_participants(calendar_id))
+                both = list(p & participants)
+                if len(both) > 0:
+                    info = db.get_some_event_info(event_id, calendar_id)
+                    if len(info) > 0:
+                        date, color = info
+                    else:
+                        date = date_of_event
+                        color = ""
+                    comm.send(current_users[user], protocol.pack_event_info(date, color))
+
+    elif not db.is_manager_event(event_id, username):
+        comm.send(ip, protocol.pack_event_dalete("1", event_id))
+    else:
+        comm.send(ip, protocol.pack_event_dalete("2", event_id))
+
+
+def handle_exit_calendar(params):
+    """
+    if calendar exist and is not personal:
+            if username is manager or is the last on the calendar - delete calendar and all its participants, delete events that were created in the calendar and tell the clients who are on the calendar that it was deleted
+            otherwise - delete participant from table, delete participant from events that were created in the calendar and if he is their manager - deletes them
+                        send the users that are currently on the calendar that the participant has exit
+            in both cases - if the user that exits is manager of some events so they get deleted - send users who are currently on a calendar that some of its participants are in the calendar that someone exits
+                            otherwise and if user is participant in some events on the calendar - send users who are currently on a calendar that the user that exits the calendar was in is a participant there.
+    otherwise - tell the user why couldnt exit
+    :param calendar_id:
+    :return:
+    """
+
+
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ServerComm(4500, msg_q)
