@@ -69,8 +69,6 @@ def handle_new_calendar(params):
         participants = participants.split("*")
         current_calendar.append([calendar_id, name, manager, participants])
         user_calendars.append(calendar_id)
-        print(current_calendar)
-        print(user_calendars)
         print(f"new calendar {data_or_not_existing_participants}")
     else:
         print("couldnt open calendar because", ", ".join(data_or_not_existing_participants.split("^")), "do not exist")
@@ -350,6 +348,68 @@ def handle_delete_event(params):
         print("cant delete event because you are not the manager")
     else:
         print("cant delete event because event do not exist")
+
+
+def exit_calendar(calendar_id):
+    """
+    try to exit a calendar
+    :param calendar_id:
+    :return:
+    """
+    if current_calendar[2] == "personal":
+        print("cant delete calendar because its a personal one")
+    else:
+        comm.send(protocol.pack_exit_calendar(calendar_id))
+
+
+def handle_exit_calendar(params):
+    """
+    delete calendar participant
+    :param params: username, calendar_id
+    :return:
+    """
+    username, calendar_id = params
+    if calendar_id == current_calendar[0]:
+        print("participant exit from calendar")
+        current_calendar[1].remove(username)
+
+
+def handle_delete_calendar(params):
+    """
+    delete caledar from screen and from list of ids
+    :param params: status, calendar_id
+    :return:
+    """
+    status, calendar_id = params
+    if status == "0":
+        if current_calendar[0] == calendar_id:
+            print("delete current calendar")
+
+        user_calendars.remove(calendar_id)
+    else:
+        print("couldnt delete calendar")
+
+
+def get_calendar_ids():
+    """
+    try to get calendar ids
+    :return:
+    """
+    comm.send(protocol.pack_calendar_ids())
+
+
+def handle_calendar_ids(params):
+    """
+    save calendar ids in user_calendars
+    :param params:
+    :return:
+    """
+    global user_calendars
+    calendar_ids = params[0]
+    calendar_ids = calendar_ids.split("^")
+    user_calendars += calendar_ids
+
+
 
 
 if __name__ == '__main__':

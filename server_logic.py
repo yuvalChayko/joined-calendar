@@ -343,18 +343,94 @@ def handle_delete_event(ip, params):
         comm.send(ip, protocol.pack_event_dalete("2", event_id))
 
 
-def handle_exit_calendar(params):
+def handle_exit_calendar(ip, params):
     """
-    if calendar exist and is not personal:
-            if username is manager or is the last on the calendar - delete calendar and all its participants, delete events that were created in the calendar and tell the clients who are on the calendar that it was deleted
+    if calendar exist:
+            if username is manager - delete calendar and all its participants, delete events that were created in the calendar and tell the clients who are on the calendar that it was deleted
             otherwise - delete participant from table, delete participant from events that were created in the calendar and if he is their manager - deletes them
                         send the users that are currently on the calendar that the participant has exit
             in both cases - if the user that exits is manager of some events so they get deleted - send users who are currently on a calendar that some of its participants are in the calendar that someone exits
                             otherwise and if user is participant in some events on the calendar - send users who are currently on a calendar that the user that exits the calendar was in is a participant there.
     otherwise - tell the user why couldnt exit
-    :param calendar_id:
+    :param params: calendar_id
     :return:
     """
+    calendar_id = params[0]
+    username = [i for i in current_users if current_users[i] == ip][0]
+    name, manager, participants = db.get_calendar_info(calendar_id)
+    status = db.exit_calendar(calendar_id, username)
+    if status == 4:
+        comm.send(ip, protocol.pack_delete_calendar("1", calendar_id))
+    elif status == 3:
+        comm.send(ip, protocol.pack_delete_calendar("0", calendar_id))
+        today = datetime.now()
+        personal_id = db.get_personal_calendar(username)
+        info = [personal_id, "personal", username, [username]]
+        comm.send(ip, protocol.pack_new_calendar("0", info))
+        comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
+        for user in current_users:
+            if current_open_calendars[user][0] == calendar_id:
+                comm.send(current_users[user], protocol.pack_exit_calendar(calendar_id, username))
+                comm.send(current_users[user], protocol.pack_month_events(
+                    db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
+                                              current_open_calendars[user][1][3:])))
+            else:
+                participants = set(participants)
+                p = set(db.get_calendar_participants(calendar_id))
+                both = list(p & participants)
+                if len(both) > 0:
+                    comm.send(current_users[user], protocol.pack_month_events(db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2], current_open_calendars[user][1][3:])))
+
+    elif status == 2:
+        comm.send(ip, protocol.pack_delete_calendar("0", calendar_id))
+        today = datetime.now()
+        personal_id = db.get_personal_calendar(username)
+        info = [personal_id, "personal", username, [username]]
+        comm.send(ip, protocol.pack_new_calendar("0", info))
+        comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
+        for user in current_users:
+            if current_open_calendars[user][0] == calendar_id:
+                comm.send(current_users[user], protocol.pack_exit_calendar(calendar_id, username))
+                comm.send(current_users[user], protocol.pack_month_events(
+                    db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
+                                              current_open_calendars[user][1][3:])))
+            else:
+                if username in db.get_calendar_participants(current_open_calendars[user][0]):
+                    comm.send(current_users[user], protocol.pack_month_events(
+                        db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
+                                                  current_open_calendars[user][1][3:])))
+    else:
+        today = datetime.now()
+        for user in current_users:
+            if user in participants:
+                comm.send(current_users[user], protocol.pack_delete_calendar(status, calendar_id))
+                if current_open_calendars[user][0] == calendar_id:
+                    personal_id = db.get_personal_calendar(user)
+                    info = [personal_id, "personal", user, [user]]
+                    comm.send(current_users[user], protocol.pack_new_calendar("0", info))
+                    comm.send(current_users[user], protocol.pack_month_events(
+                        db.get_events_of_calendar(personal_id, today.month, today.year)))
+            else:
+                participants = set(participants)
+                p = set(db.get_calendar_participants(calendar_id))
+                both = list(p & participants)
+                if len(both) > 0:
+                    comm.send(current_users[user], protocol.pack_month_events(
+                        db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
+                                                  current_open_calendars[user][1][3:])))
+
+
+def handle_calendar_ids(ip, params):
+    """
+    if user exists, send him his calendar ids
+    :param params:
+    :return:
+    """
+    username = [i for i in current_users if current_users[i] == ip][0]
+    if db.is_user_exists(username):
+        comm.send(ip, protocol.pack_calendar_ids(db.get_user_calendars(username)))
+
+    "else - disconnect client"
 
 
 if __name__ == '__main__':

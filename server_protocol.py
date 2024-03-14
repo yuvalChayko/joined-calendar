@@ -152,6 +152,15 @@ def pack_event_dalete(status, event_id):
     """
     return f"30{status},{event_id}"
 
+def pack_delete_calendar(status, calendar_id):
+    """
+    pack msg according to the protocol
+    :param status:
+    :param calendar_id:
+    :return:
+    """
+    return f"31{status},{calendar_id}"
+
 def pack_exit_calendar(calendar_id, username):
     """
     pack msg according to the protocol
@@ -159,7 +168,7 @@ def pack_exit_calendar(calendar_id, username):
     :param username:
     :return:
     """
-    return f"31{calendar_id},{username}"
+    return f"32{calendar_id},{username}"
 
 def pack_calendar_ids(calendar_ids):
     """

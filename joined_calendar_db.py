@@ -520,10 +520,12 @@ class joined_calendar_db:
         remove user from calendar
         :param calendar_id:
         :param username:
-        :return:
+        :return: status of what happened
         """
+        status = 4
         if self._is_calendar_exists(calendar_id) and self.is_user_exists(username) and self.is_participant_exists_in_calendar(calendar_id, username):
             if self.is_manager_calander(calendar_id, username):
+                status = 1
                 # delete calendar
                 sql = ["DELETE FROM " + self.calendar_invitations + " WHERE calendar_id = ?",
                        "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ?",
@@ -547,6 +549,7 @@ class joined_calendar_db:
                 self.db_conn.commit()
 
             else:
+                status = 2
                 # remove from calendar
 
                 #self.calendars_participants, self.event_info, self.events_participants, self.event_invitations, self.reminders
@@ -559,7 +562,8 @@ class joined_calendar_db:
                 self.db_cursor.execute(sql, (calendar_id, username,))
                 events = self.db_cursor.fetchall()
                 events = [x[0] for x in events]
-
+                if len(events) != 0:
+                    status = 3
                 for x in events:
                     sql = ["DELETE FROM " + self.events_participants + " WHERE event_id = ? AND participant = ?",
                            "DELETE FROM " + self.reminders + " WHERE event_id = ? AND participant = ?"]
@@ -572,6 +576,7 @@ class joined_calendar_db:
                 sql = "DELETE FROM " + self.event_info + " WHERE calendar_id = ? AND manager = ?"
                 self.db_cursor.execute(sql, (calendar_id, username,))
                 self.db_conn.commit()
+        return status
 
     def delete_event(self, event_id, username):
         """
@@ -652,6 +657,20 @@ class joined_calendar_db:
             self.db_conn.commit()
         else:
             print("error - calendar invitation doesnt exists")
+
+    def get_personal_calendar(self, username):
+        """
+        return calendar_id of personal calendar
+        :param username:
+        :return:
+        """
+        calendar_id = ""
+        if self.is_user_exists(username):
+            sql = "SELECT calendar_id FROM " + self.calendars + " WHERE manager = ? AND name = ?"
+            self.db_cursor.execute(sql, (username, "personal"))
+            calendar_id = self.db_cursor.fetchone()[0]
+        return calendar_id
+
 
     def delete_event_invitation(self, username, id):
         """
@@ -762,7 +781,7 @@ class joined_calendar_db:
 
     def get_calendar_info(self, calendar_id):
         """
-        return name and participants
+        return name, manager and participants
         :param calendar_id:
         :return:
         """
@@ -776,6 +795,18 @@ class joined_calendar_db:
 
             info = [name, manager, participants]
         return info
+
+    def get_calendar_name(self, calendar_id):
+        """
+        return calendar_id
+        :param calendar_id:
+        :return:
+        """
+        if self._is_calendar_exists(calendar_id):
+            sql = "SELECT name FROM " + self.calendars + " WHERE calendar_id = ?"
+            self.db_cursor.execute(sql, (calendar_id,))
+            name = self.db_cursor.fetchone()[0]
+        return name
 
     def get_day_color(self, date, calendar_id):
         """
