@@ -343,6 +343,17 @@ def handle_delete_event(ip, params):
         comm.send(ip, protocol.pack_event_dalete("2", event_id))
 
 
+def handle_get_invitations(ip, params):
+    """
+    send calendar's and event's invitations to user
+    :param ip:
+    :param params:
+    :return:
+    """
+    username = [i for i in current_users if current_users[i] == ip][0]
+    comm.send(ip, protocol.pack_invitations(db.get_calendar_invitations(username) + db.get_event_invitations(username)))
+
+
 def handle_exit_calendar(ip, params):
     """
     if calendar exist:
@@ -427,17 +438,41 @@ def handle_calendar_ids(ip, params):
     :return:
     """
     username = [i for i in current_users if current_users[i] == ip][0]
-    if db.is_user_exists(username):
-        comm.send(ip, protocol.pack_calendar_ids(db.get_user_calendars(username)))
+    comm.send(ip, protocol.pack_calendar_ids(db.get_user_calendars(username)))
 
-    "else - disconnect client"
+
+def handle_day_events(ip, params):
+    """
+
+    :param ip:
+    :param params: calendar_id, date
+    :return:
+    """
+    calendar_id, date = params
+    username = [i for i in current_users if current_users[i] == ip][0]
+    comm.send(ip, protocol.pack_day_events(db.get_day_events(username, calendar_id, date)))
+
+
+def handle_month_events(ip, params):
+    """
+    get month events of calendar (color and date)
+    :param ip:
+    :param params: calendar_id, month, year
+    :return:
+    """
+    calendar_id, month, year = params
+    comm.send(ip, protocol.pack_month_events(db.get_event_participants(calendar_id)))
 
 
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ServerComm(4500, msg_q)
     db = data_base()
-    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event}
+    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
+               "10": handle_calendar_invitation, "11": handle_is_calendar_accepted, "12": handle_event_invitation,
+               "13": handle_is_event_accepted, "14": handle_get_invitations, "20": handle_change_name_of_calendar,
+               "21": handle_change_name_of_event, "22": handle_time_change, "30": handle_delete_event,
+               "31": handle_exit_calendar, "40": handle_calendar_ids, "41": handle_day_events, "42": handle_month_events}
     current_users = {} # username: ip
     current_open_calendars = {} # user: [calendar_id, month and year, day]
     while True:
