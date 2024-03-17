@@ -421,8 +421,8 @@ class joined_calendar_db:
         :param name:
         :return:
         """
-        sql = "UPDATE " + self.calendars + " SET name = " + name + " WHERE calendar_id = ?"
-        self.db_cursor.execute(sql, (id,))
+        sql = "UPDATE " + self.calendars + " SET name = ?" + " WHERE calendar_id = ?"
+        self.db_cursor.execute(sql, (name, id,))
         self.db_conn.commit()
 
 
@@ -433,8 +433,8 @@ class joined_calendar_db:
            :param name:
            :return:
            """
-        sql = "UPDATE " + self.event_info + " SET name = " + name + " WHERE event_id = ?"
-        self.db_cursor.execute(sql, (id,))
+        sql = "UPDATE " + self.event_info + " SET name = ? WHERE event_id = ?"
+        self.db_cursor.execute(sql, (name, id,))
         self.db_conn.commit()
 
 
@@ -447,8 +447,8 @@ class joined_calendar_db:
         :param date:
         :return:
         """
-        sql = "UPDATE " + self.event_info + " SET start_hour = " + start + " , end_hour = " + end + " , date = " + date + " WHERE event_id = ?"
-        self.db_cursor.execute(sql, (id,))
+        sql = "UPDATE " + self.event_info + " SET start_hour = ? , end_hour = ? , date = ? WHERE event_id = ?"
+        self.db_cursor.execute(sql, (start, end, date, id,))
         self.db_conn.commit()
 
 
@@ -709,7 +709,7 @@ class joined_calendar_db:
         events = []
         if self._is_calendar_exists(calendar_id):
             participants = self.get_calendar_participants(calendar_id)
-            month_year = month + "." + year
+            month_year = str(month) + "." + str(year)
             sql = f"SELECT event_id, date FROM {self.event_info} WHERE date LIKE ?"
             wildcard_month_year = '%' + month_year
             self.db_cursor.execute(sql, (wildcard_month_year,))
@@ -727,19 +727,17 @@ class joined_calendar_db:
                 if both:
                     date = dates[ids.index(id)]
                     if len(both) > 1:
-                        temp = (date, self.joined_color, [id])
+                        temp = [date, self.joined_color]
                     else:
                         both = list(both)
-                        temp = (date, self.get_color(both[0], calendar_id), [id])
+                        temp = [date, self.get_color(both[0], calendar_id)]
 
                     for event in events:
                         if event[0] == date:
                             if temp[1] != event[1]:
-                                add_id = event[2] + temp[2]
-                                events[events.index(event)] = (event[0], self.joined_color, add_id)
+                                events[events.index(event)] = [event[0], self.joined_color]
                             else:
-                                add_id = event[2].append(temp[2])
-                                events[events.index(event)] = (event[0], event[1], add_id)
+                                events[events.index(event)] = [event[0], event[1]]
 
                             break
                     else:
@@ -839,9 +837,12 @@ class joined_calendar_db:
         :param event_id:
         :return:
         """
-        sql = "SELECT date FROM " + self.event_info + " WHERE event_id = ?"
-        self.db_cursor.execute(sql, (event_id,))
-        return self.db_cursor.fetchone()[0]
+        date = ""
+        if self._is_event_exists(event_id):
+            sql = "SELECT date FROM " + self.event_info + " WHERE event_id = ?"
+            self.db_cursor.execute(sql, (event_id,))
+            date = self.db_cursor.fetchone()[0]
+        return date
 
     def get_event_info(self, event_id, username):
         """
@@ -898,7 +899,11 @@ class joined_calendar_db:
         """
         sql = "SELECT calendar_id FROM " + self.event_info + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (event_id,))
-        return self.db_cursor.fetchone()[0]
+        id =  self.db_cursor.fetchone()
+        if not id:
+            id = [""]
+        return id[0]
+
 
 
 

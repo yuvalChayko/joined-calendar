@@ -78,7 +78,7 @@ def pack_new_calendar_participant(status, calendar_id, username):
     """
     return f"11{status},{calendar_id},{username}"
 
-def pack_event_invitation_succeed(status, username, name_event, name_calendar):
+def pack_event_invitation_succeed(status):
     """
     pack msg according to the protocol
     :param status:
@@ -87,7 +87,7 @@ def pack_event_invitation_succeed(status, username, name_event, name_calendar):
     :param name_calendar:
     :return:
     """
-    return f"13{status},{username},{name_event},{name_calendar}"
+    return f"13{status}"
 
 def pack_invitations(invitations):
     """
@@ -119,16 +119,15 @@ def pack_calendar_name_edit(status, calendar_id, name):
     """
     return f"20{status},{calendar_id},{name}"
 
-def pack_event_name_edit(status, calendar_id, event_id , name):
+def pack_event_name_edit(status, event_id , name):
     """
     pack msg according to the protocol
     :param status:
-    :param calendar_id:
     :param event_id:
     :param name:
     :return:
     """
-    return f"21{status},{calendar_id},{event_id},{name}"
+    return f"21{status},{event_id},{name}"
 
 def pack_time_edit(status, calendar_id, event_id, time_or_participants):
     """
@@ -197,9 +196,11 @@ def pack_month_events(month_events):
     :param month_events:
     :return:
     """
+    print(f"hereeee {month_events}")
+    print(f"hereeee {list(month_events)}")
     if not month_events:
         month_events = []
-    month_events = ["^".join(x) for x in list(month_events)]
+    month_events = ["^".join(x) for x in month_events]
     month_events = "*".join(month_events)
     return f"42{month_events}"
 

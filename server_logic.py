@@ -61,11 +61,14 @@ def handle_new_calendar(ip, params):
     """
     username = [i for i in current_users if current_users[i] == ip][0]
     name, participants = params
+    print(f"participants: {participants}")
     participants = participants.split("^")
     not_existing_participants = [i for i in participants if not db.is_user_exists(i)]
     if not not_existing_participants:
         id = db.add_calendar(name, username)
         comm.send(ip, protocol.pack_new_calendar("0", [id, name, username, [username]]))
+        today = datetime.now()
+        comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(id, today.month, today.year)))
         for i in participants:
             db.add_calendar_invitation(id, username, i)
             if i in current_users:
@@ -99,12 +102,12 @@ def handle_new_event(ip, params):
                 if p in current_users:
                     comm.send(current_users[p], protocol.pack_there_is_an_invitation())
             date, color = get_event_info(date, calendar_id)
-            comm.send(ip, protocol.pack_event_info(event_id, date, color))
+            comm.send(ip, protocol.pack_event_info(date, color))
             for user in current_open_calendars:
                 month = date[3:]
                 if month == current_open_calendars[user][1] and db.is_participant_exists_in_calendar(current_open_calendars[user][0]):
                     date, color = get_event_info(event_id, current_open_calendars[user][0])
-                    comm.send(current_users[user], protocol.pack_event_info(event_id, date, color))
+                    comm.send(current_users[user], protocol.pack_event_info(date, color))
 
         else:
             comm.send(ip, protocol.pack_new_event("1", ""))
@@ -134,7 +137,7 @@ def handle_calendar_invitation(ip, params):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("2"))
     elif not db.is_user_exists(username):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("3"))
-    elif db.is_participant_exists_in_calendar(username):
+    elif db.is_participant_exists_in_calendar(calendar_id, username):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("4"))
     elif db.is_calendar_invitation_exists(calendar_id, username):
         comm.send(ip, protocol.pack_is_calendar_invitation_work("5"))
@@ -158,10 +161,10 @@ def handle_is_calendar_accepted(ip, params):
     db.delete_calendar_invitation(username, calendar_id)
     if status == "0":
         db.add_calendar_participant(calendar_id, username)
-        today = datetime.now()
+        # today = datetime.now()
         info = db.get_calendar_info(calendar_id)
         comm.send(ip, protocol.pack_new_calendar(status, [calendar_id, info[0], info[1], info[2]]))
-        comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, today.month, today.year)))
+        # comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, today.month, today.year)))
         for user in current_open_calendars:
             if current_open_calendars[user][0] == calendar_id:
                 comm.send(current_users[user], protocol.pack_new_calendar_participant(status, calendar_id, username))
@@ -180,19 +183,19 @@ def handle_event_invitation(ip, params):
     calendar_id, event_id, username = params
     invited_by = [i for i in current_users if current_users[i] == ip][0]
     if not db._is_calendar_exists(calendar_id):
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("1"))
+        comm.send(ip, protocol.pack_event_invitation_succeed("1"))
     elif not db.is_manager_event(event_id, invited_by):
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("2"))
+        comm.send(ip, protocol.pack_event_invitation_succeed("2"))
     elif not db.is_user_exists(username):
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("3"))
-    elif not db.is_participant_exists_in_calendar(username):
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("4"))
+        comm.send(ip, protocol.pack_event_invitation_succeed("3"))
+    elif not db.is_participant_exists_in_calendar(calendar_id, username):
+        comm.send(ip, protocol.pack_event_invitation_succeed("4"))
     elif db.is_event_invitation_exists(event_id, username):
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("5"))
+        comm.send(ip, protocol.pack_event_invitation_succeed("5"))
     elif db.is_participant_exists_in_event(event_id, username):
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("6"))
+        comm.send(ip, protocol.pack_event_invitation_succeed("6"))
     else:
-        comm.send(ip, protocol.pack_is_calendar_invitation_work("0"))
+        comm.send(ip, protocol.pack_event_invitation_succeed("0"))
         db.add_event_invitation(event_id, calendar_id, username, invited_by)
         if username in current_users.keys():
             comm.send(current_users[username],
@@ -254,9 +257,9 @@ def handle_change_name_of_event(ip, params):
     username = [i for i in current_users if current_users[i] == ip][0]
     if db.is_manager_event(event_id, username):
         db.change_event_name(event_id, name)
-        comm.send(ip, protocol.pack_event_name_edit("0", calendar_id, event_id, name))
+        comm.send(ip, protocol.pack_event_name_edit("0", event_id, name))
     else:
-        comm.send(ip, protocol.pack_event_name_edit("1", calendar_id, event_id, ""))
+        comm.send(ip, protocol.pack_event_name_edit("1", event_id, ""))
 
 
 def handle_time_change(ip, params):

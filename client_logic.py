@@ -9,7 +9,7 @@ class Params:
     def __init__(self):
         self. user_calendars = []
         self.current_day = []  # full date
-        self.day_events = []
+        self.day_events = {}  # [id, date, name, start, end, manager, [participants]]
         self.current_month = []  # month and year
         self.invitations = []
 
@@ -77,7 +77,7 @@ def handle_new_calendar(params):
         calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
         participants = participants.split("*")
         current_calendar.append([calendar_id, name, manager, participants])
-        user_calendars.append(calendar_id)
+        global_params.user_calendars.append(calendar_id)
         print(f"new calendar {data_or_not_existing_participants}")
     else:
         print("couldnt open calendar because", ", ".join(data_or_not_existing_participants.split("^")), "do not exist")
@@ -90,7 +90,7 @@ def new_calendar(name, participants):
     :param participants:
     :return:
     """
-    if name == "personal" or "^" in name or "*" in name or "," in name:
+    if name == "personal" or "^" in name or "*" in name or "," in name or "$" in name:
         print("name not valid")
     else:
         comm.send(protocol.pack_new_calendar(name, participants))
@@ -118,7 +118,7 @@ def new_event(calendar_id, name, participants, start, end, date):
     send new eveent
     :return:
     """
-    if "^" in name or "*" in name or "," in name:
+    if "^" in name or "*" in name or "," in name or "$" in name:
         print("name not valid")
     else:
         comm.send(protocol.pack_new_event(calendar_id, name, start, end, date, participants))
@@ -136,7 +136,7 @@ def handle_event_info(params):
         print("remove events dot from screen")
     if color:
         month = date[3: 5]
-        if month == current_month:
+        if month == global_params.current_month:
             month_events[date] = color
             print("add events dot to screen")
 
@@ -203,6 +203,17 @@ def handle_there_is_an_invitation(params):
     print("there is an invitation")
 
 
+def invite_to_event(username, calendar_id, event_id):
+    """
+    send invitation to server
+    :param username:
+    :param calendar_id:
+    :param event_id:
+    :return:
+    """
+    comm.send(protocol.pack_event_invitation(calendar_id, event_id, username))
+
+
 def handle_is_event_invitation_work(params):
     """
     show if invitation succeed and if not why
@@ -243,7 +254,7 @@ def change_name_of_calendar(name, calendar_id):
     :param calendar_id:
     :return:
     """
-    if name == "personal" or "^" in name or "*" in name or "," in name:
+    if name == "personal" or "^" in name or "*" in name or "," in name or "$" in name:
         print("name not valid")
     else:
         comm.send(protocol.pack_calendar_name_edit(calendar_id, name))
@@ -271,7 +282,7 @@ def change_name_of_event(name, event_id):
     :param event_id:
     :return:
     """
-    if "^" in name or "*" in name or "," in name:
+    if "^" in name or "*" in name or "," in name or "$" in name:
         print("name not valid")
     else:
         comm.send(protocol.pack_event_name_edit(event_id, name))
@@ -283,10 +294,10 @@ def handle_event_name_change(params):
     :param params: status, calendar_id, event_id, name
     :return:
     """
-    status, calendar_id, event_id, name = params
+    status, event_id, name = params
     if status == '0':
-        current_event = [i for i in params.day_events if i[0] == event_id][0]
-        params.day_events[current_event][2] = name
+        current_event = [i for i in range(len(global_params.day_events)) if global_params.day_events[i][0] == event_id][0]
+        global_params.day_events[current_event][2] = name
         print("name of event changed successfully")
     else:
         print("you are not the manager so couldnt change name of event")
@@ -331,10 +342,10 @@ def handle_time_change(params):
         print(f"couldnt change time because {', '.join(participants)} are not free at this time")
     elif status == "0":
         start, end, date = time_or_participants
-        current_event = [i for i in params.day_events if i[0] == event_id][0]
-        params.day_events[current_event][1] = date
-        params.day_events[current_event][3] = start
-        params.day_events[current_event][4] = end
+        current_event = [i for i in global_params.day_events if i[0] == event_id][0]
+        global_params.day_events[current_event][1] = date
+        global_params.day_events[current_event][3] = start
+        global_params.day_events[current_event][4] = end
         print("time change succeed")
     else:
         print("event do not exist so cant change its time")
@@ -399,7 +410,7 @@ def handle_delete_calendar(params):
         if current_calendar[0] == calendar_id:
             print("delete current calendar")
 
-        params.user_calendars.remove(calendar_id)
+        global_params.user_calendars.remove(calendar_id)
     else:
         print("couldnt delete calendar")
 
@@ -420,7 +431,7 @@ def handle_calendar_ids(params):
     """
     calendar_ids = params[0]
     calendar_ids = calendar_ids.split("^")
-    params.user_calendars = calendar_ids
+    global_params.user_calendars = calendar_ids
 
 
 def get_day_events(calendar_id, date):
@@ -438,7 +449,7 @@ def get_day_events(calendar_id, date):
 
     if flag:
         comm.send(protocol.pack_day_event(calendar_id, date))
-        params.current_day = date
+        global_params.current_day = date
     else:
         print("something went wrong - not valid date")
 
@@ -452,7 +463,7 @@ def handle_day_events(params):
     events = params[0].split("*")
     for i in range(len(events)):
         events[i] = events[i].split("^")
-    params.day_events = events
+    global_params.day_events = events
     print("got day events, show them on screen")
 
 
@@ -466,7 +477,7 @@ def get_month_events(calendar_id, month, year):
     """
     if month.isnumeric() and year.isnumeric() and len(month) == 2 and len(year) == 4:
         comm.send(protocol.pack_month_events(calendar_id, month, year))
-        params.current_month = month + "." + year
+        global_params.current_month = month + "." + year
     else:
         print("something went wrong - not valid month and year")
 
@@ -478,9 +489,10 @@ def handle_month_events(params):
     :return:
     """
     events = params[0].split("*")
-    for i in events:
-        date, color = i.split("^")
-        month_events[date] = color
+    if len(events) > 0:
+        for i in events:
+            date, color = i.split("^")
+            month_events[date] = color
     print("got month events - show them on screen")
 
 
@@ -501,7 +513,7 @@ def handle_invitations(params):
     invitations = params[0].split("*")
     for i in range(len(invitations)):
         invitations[i] = invitations[i].split("^")
-    params.invitations = invitations
+    global_params.invitations = invitations
     print("got invitations, show them on screen")
 
 
@@ -517,14 +529,24 @@ if __name__ == '__main__':
                "41": handle_day_events, "42": handle_month_events}
     current_calendar = []  # id, participants, name
     month_events = {}  # date: color
-    params = Params()
-    params.day_events = [["1", "01.01.2024", "hello", "18:00", "20:00", "amit", ["amit", "alon", "yuval"]]]  # [id, date, name, start, end, manager, [participants]]
+    global_params = Params()
+    global_params.day_events = [["1", "01.01.2024", "hello", "18:00", "20:00", "amit", ["amit", "alon", "yuval"]]]  # [id, date, name, start, end, manager, [participants]]
 
 
     login("test1", "1234")
     sign_up("test4", "1234", "4444444444")
-    new_calendar("hello", ["test2", "test3"])
-    new_event("1", "hello", ["test2"], "20:00", "21:00", "11.03.2024")
+    new_calendar("hello", ["test3"])
+    new_event("1", "hello", ["test2"], "20:00", "21:00", "18.03.2024")
+    invite_to_calendar("test1", '21')
+    invite_to_calendar("test1", '1')
+    response_to_calendar_invitation("0", '21')
+    response_to_calendar_invitation("1", '21')
+    invite_to_event("test3", "1", "1")
+    response_event_invitation("0", "9")
+    change_name_of_calendar("new name", "1")
+    change_name_of_event("new name", "1")
+
+
     while True:
         msg = msg_q.get()
         opcode, params = protocol.unpack(msg)
