@@ -6,25 +6,6 @@ def unpack(data):
     """
     opcode = data[:2]
     params = data[2:].split(",")
-
-    # if opcode == "00" or opcode == "01":
-    #     params = data[2:]
-    # elif opcode == "02":
-    #     if data[3:].is_numric():
-    #         params = [data[2], data[3:]]
-    #     else:
-    #         params = [data[2], data[3:].split("^")]
-    # elif opcode == "03" or opcode == "04":
-    #     if len(data[2:]) > 1:
-    #         params = [data[2], data[3:]]
-    #     else:
-    #         params = data[2]
-    # elif opcode == "05" or opcode == "10":
-    #     params = data[2:].split("$")
-    # elif opcode == "10":
-    #     pass
-
-
     return opcode, params
 
 

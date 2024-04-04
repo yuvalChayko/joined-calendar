@@ -61,7 +61,6 @@ def handle_new_calendar(ip, params):
     """
     username = [i for i in current_users if current_users[i] == ip][0]
     name, participants = params
-    print(f"participants: {participants}")
     participants = participants.split("^")
     not_existing_participants = [i for i in participants if not db.is_user_exists(i)]
     if not not_existing_participants:
@@ -417,8 +416,6 @@ def handle_exit_calendar(ip, params):
                                                       current_open_calendars[user][1][3:])))
         else:
             today = datetime.now()
-            print("hereeeeeeeeeeeeeee")
-            print(participants)
             for user in current_users:
                 if user in participants:
                     comm.send(current_users[user], protocol.pack_delete_calendar("0", calendar_id))
@@ -471,6 +468,19 @@ def handle_month_events(ip, params):
     comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, month, year)))
 
 
+def disconnect_client(ip, params):
+    """
+    delete ip from current_users and user from current_open_calendars
+    :param ip:
+    :param params:
+    :return:
+    """
+    username = [i for i in current_users if current_users[i] == ip][0]
+    del current_users[username]
+    if username in current_open_calendars:
+        del current_open_calendars[username]
+
+
 if __name__ == '__main__':
     msg_q = queue.Queue()
     comm = ServerComm(4500, msg_q)
@@ -479,7 +489,8 @@ if __name__ == '__main__':
                "10": handle_calendar_invitation, "11": handle_is_calendar_accepted, "12": handle_event_invitation,
                "13": handle_is_event_accepted, "14": handle_get_invitations, "20": handle_change_name_of_calendar,
                "21": handle_change_name_of_event, "22": handle_time_change, "30": handle_delete_event,
-               "31": handle_exit_calendar, "40": handle_calendar_ids, "41": handle_day_events, "42": handle_month_events}
+               "31": handle_exit_calendar, "40": handle_calendar_ids, "41": handle_day_events, "42": handle_month_events,
+               "99": disconnect_client}
     current_users = {} # username: ip
     current_open_calendars = {} # user: [calendar_id, month and year, day]
     current_open_calendars["test1"] = ["2", "03.2024", "02"]

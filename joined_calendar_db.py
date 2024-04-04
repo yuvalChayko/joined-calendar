@@ -722,6 +722,10 @@ class joined_calendar_db:
         self.db_cursor.execute(sql, (username,))
         calendars = self.db_cursor.fetchall()
         calendars = [x[0] for x in calendars]
+        personal_id = str(self.get_personal_calendar(username))
+        print(f"hereeeeee{personal_id} and {calendars}")
+        calendars.remove(personal_id)
+        calendars = [personal_id] + calendars
         return calendars
 
     def get_events_of_calendar(self, calendar_id, month, year):
@@ -881,8 +885,8 @@ class joined_calendar_db:
 
     def get_event_info(self, event_id, username, calendar_id):
         """
-        get event info - name, participants, manager, start hour, end hour, date
-        or start, end, date, participants
+        get event info - participants, name, manager, start hour, end hour, date
+        or participants, start, end, date
         :param event_id:
         :param username
         :param calendar_id:

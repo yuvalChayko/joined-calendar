@@ -34,7 +34,6 @@ def pack_new_calendar(status, data_or_not_existing_participants):
     """
     if status == "0":
         data_or_not_existing_participants[3] = "*".join(data_or_not_existing_participants[3])
-    print(data_or_not_existing_participants)
     data_or_not_existing_participants = "^".join(data_or_not_existing_participants)
 
     return f"02{status},{data_or_not_existing_participants}"
@@ -199,8 +198,6 @@ def pack_month_events(month_events):
     :param month_events:
     :return:
     """
-    print(f"hereeee {month_events}")
-    print(f"hereeee {list(month_events)}")
     if not month_events:
         month_events = []
     month_events = ["^".join(x) for x in month_events]

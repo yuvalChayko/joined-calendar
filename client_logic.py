@@ -492,7 +492,6 @@ def handle_month_events(params):
     :return:
     """
     events = params[0].split("*")
-    print(events)
     if len(events) > 0 and events[0] != "":
         for i in events:
             date, color = i.split("^")

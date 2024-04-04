@@ -64,6 +64,7 @@ class ServerComm:
         '''
         if client in self.open_clients.keys():
             print(f'{self.open_clients[client]} - disconnected')
+            self.rcv_q.put((self.open_clients[client][0], "99"))
             del self.open_clients[client]
 
     def _find_socket_by_ip(self, ip):
