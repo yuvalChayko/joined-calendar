@@ -338,6 +338,32 @@ class joined_calendar_db:
             print("user do not exists so cant check time availability")
         return flag
 
+    def events_in_time(self, username, start, end, date):
+        """
+        return events in time
+        :param username:
+        :param start:
+        :param end:
+        :param date:
+        :return:
+        """
+        events = []
+        if self.is_user_exists(username):
+            sql = "SELECT start_hour, end_hour, event_id FROM " + self.event_info + " WHERE manager = ? AND date = ?"
+            self.db_cursor.execute(sql, (username, date,))
+            hours = self.db_cursor.fetchall()
+            hours = [i for i in hours]
+            start = int(start.replace(":", ""))
+            end = int(end.replace(":", ""))
+            for x in hours:
+                if (start >= int(x[0].replace(":", "")) and start < int(x[1].replace(":", ""))) or (
+                        end > int(x[0].replace(":", "")) and end <= int(x[1].replace(":", ""))):
+                    events.append(str(x[2]))
+
+        else:
+            print("user do not exists so cant check time availability")
+        return events
+
     def add_event_invitation(self, event_id, calendar_id, invited, invited_by):
         """
 
@@ -765,17 +791,26 @@ class joined_calendar_db:
         :return:
         """
         day, month, year = date.split('.')
-        month_event = self.get_events_of_calendar(calendar_id, month, year)
         day_events = None
         if self._is_calendar_exists(calendar_id):
+            day_ids = self.get_day_ids(calendar_id, date)
             day_events = []
-            for x in month_event:
-                if x[0] == date:
-                    ids = x[2]
-                    for id in ids:
-                        day_events += [self.get_event_info(id, username)]
-                    break
+            for id in day_ids:
+                day_events += [self.get_event_info(id, username, calendar_id)]
         return day_events
+
+    def get_day_ids(self, calendar_id, date):
+        """
+        get list of this day calendars events ids
+        :param calendar_id:
+        :param date:
+        :return:
+        """
+        sql = "SELECT event_id FROM " + self.event_info + " WHERE date = ? AND calendar_id = ?"
+        self.db_cursor.execute(sql, (date, calendar_id, ))
+        event_ids = self.db_cursor.fetchall()
+        event_ids = [i[0] for i in event_ids]
+        return event_ids
 
     def get_calendar_info(self, calendar_id):
         """
@@ -844,23 +879,26 @@ class joined_calendar_db:
             date = self.db_cursor.fetchone()[0]
         return date
 
-    def get_event_info(self, event_id, username):
+    def get_event_info(self, event_id, username, calendar_id):
         """
         get event info - name, participants, manager, start hour, end hour, date
+        or start, end, date, participants
         :param event_id:
         :param username
+        :param calendar_id:
         :return:
         """
         info = []
         if self._is_event_exists(event_id):
-            participants = self.get_event_participants(event_id)
+            participants = list(set(self.get_event_participants(event_id)) & set(self.get_calendar_participants(calendar_id)))
             if username in participants:
                 sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
             else:
                 sql = "SELECT start_hour, end_hour, date FROM " + self.event_info + " WHERE event_id = ?"
             self.db_cursor.execute(sql, (event_id,))
             info = self.db_cursor.fetchone()
-            info = list(info) + [participants]
+
+            info = [participants] + list(info)
 
         return info
 

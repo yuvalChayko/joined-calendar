@@ -341,12 +341,15 @@ def handle_time_change(params):
         participants = time_or_participants.split("^")
         print(f"couldnt change time because {', '.join(participants)} are not free at this time")
     elif status == "0":
-        start, end, date = time_or_participants
-        current_event = [i for i in global_params.day_events if i[0] == event_id][0]
-        global_params.day_events[current_event][1] = date
-        global_params.day_events[current_event][3] = start
-        global_params.day_events[current_event][4] = end
+        start, end, date = time_or_participants.split("^")
+        for i in range(len(global_params.day_events)):
+            if global_params.day_events[i] == event_id:
+                global_params.day_events[i][1] = date
+                global_params.day_events[i][3] = start
+                global_params.day_events[i][4] = end
         print("time change succeed")
+    elif status == "2":
+        print("couldnt change time because you are not the manager")
     else:
         print("event do not exist so cant change its time")
 
@@ -489,7 +492,8 @@ def handle_month_events(params):
     :return:
     """
     events = params[0].split("*")
-    if len(events) > 0:
+    print(events)
+    if len(events) > 0 and events[0] != "":
         for i in events:
             date, color = i.split("^")
             month_events[date] = color
@@ -527,13 +531,13 @@ if __name__ == '__main__':
                "20": handle_calendar_name_change, "21": handle_event_name_change, "22": handle_time_change,
                "30": handle_delete_event, "31": handle_delete_calendar, "32": handle_exit_calendar, "40": handle_calendar_ids,
                "41": handle_day_events, "42": handle_month_events}
-    current_calendar = []  # id, participants, name
+    current_calendar = ["58", ["test1", "test2"], "test"]  # id, participants, name
     month_events = {}  # date: color
     global_params = Params()
     global_params.day_events = [["1", "01.01.2024", "hello", "18:00", "20:00", "amit", ["amit", "alon", "yuval"]]]  # [id, date, name, start, end, manager, [participants]]
 
 
-    login("test1", "1234")
+    login("test2", "1234")
     sign_up("test4", "1234", "4444444444")
     new_calendar("hello", ["test3"])
     new_event("1", "hello", ["test2"], "20:00", "21:00", "18.03.2024")
@@ -545,6 +549,18 @@ if __name__ == '__main__':
     response_event_invitation("0", "9")
     change_name_of_calendar("new name", "1")
     change_name_of_event("new name", "1")
+    change_time("10", "18:00", "20:00", "21.03.2024")
+    change_time("9", "18:00", "21:00", "17.03.2024")
+    change_time("9", "18:00", "21:00", "20.03.2024")
+    delete_event("10")
+    delete_event("9")
+    exit_calendar("58")
+    get_calendar_ids()
+    get_day_events("1", "12.02.2024")
+    get_month_events("1", "03", "2024")
+    get_invitations()
+
+
 
 
     while True:

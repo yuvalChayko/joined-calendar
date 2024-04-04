@@ -186,7 +186,10 @@ def pack_day_events(day_events):
     """
     if not day_events:
         day_events = []
-    day_events = ["^".join(x) for x in list(day_events)]
+    for i in day_events:
+        i[0] = "$".join(i[0])
+
+    day_events = ["^".join(x) for x in day_events]
     day_events = "*".join(day_events)
     return f"41{day_events}"
 
