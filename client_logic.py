@@ -37,7 +37,10 @@ def login(username, password):
     :param password:
     :return:
     """
-    comm.send(protocol.pack_login(username, password))
+    if "^" in username or "*" in username or "," in username or "$" in username or "^" in password or "*" in password or "," in password or "$" in password or len(password) < 5:
+        print("not valid input")
+    else:
+        comm.send(protocol.pack_login(username, password))
 
 
 def handle_sign_up(params):
@@ -61,7 +64,10 @@ def sign_up(username, password, phone_number):
     :param phone_number:
     :return:
     """
-    comm.send(protocol.pack_signup(username, password, phone_number))
+    if "^" in username or "*" in username or "," in username or "$" in username or "^" in password or "*" in password or "," in password or "$" in password or len(password) < 5 or not phone_number.isdigit() or len(phone_number) != 10:
+        print("not valid input")
+    else:
+        comm.send(protocol.pack_signup(username, password, phone_number))
 
 
 def handle_new_calendar(params):
