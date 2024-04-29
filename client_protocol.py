@@ -167,6 +167,16 @@ def pack_month_events(calendar_id, month, year):
     """
     return f"42{calendar_id},{month},{year}"
 
+
+def pack_get_calendar_info(calendar_id):
+    """
+    pack msg according to the protocol
+    :param calendar_id:
+    :return:
+    """
+    return f"43{calendar_id}"
+
+
 def pack_key(key):
     """
     pack msg according to the protocol

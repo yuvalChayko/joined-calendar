@@ -22,7 +22,13 @@ def handle_login(ip, params):
     elif username in current_users.keys():
         status = 3
     else:
-        msgs_to_send += [protocol.pack_calendar_ids(db.get_user_calendars(username))]
+        ids = db.get_user_calendars(username)
+        msgs_to_send += [protocol.pack_calendar_ids(ids)]
+        data = [ids[0]] + db.get_calendar_info(ids[0])
+        msgs_to_send += [protocol.pack_new_calendar("9", data)]
+        today = datetime.now()
+        msgs_to_send += [protocol.pack_month_events(db.get_events_of_calendar(ids[0], today.month, today.year))]
+
         if db.get_calendar_invitations(username) or db.get_event_invitations(username):
             msgs_to_send += [protocol.pack_there_is_an_invitation()]
         current_users[username] = ip
@@ -41,15 +47,21 @@ def handle_sign_up(ip, params):
     username, password, phone_number = params
     status = 1
     msg = ""
+    msgs_to_send = []
     if not db.is_user_exists(username):
         status = 0
 
         db.add_user(username, password, phone_number)
         db.add_calendar("personal", username)
-        msg = protocol.pack_calendar_ids(db.get_user_calendars(username))
+        ids = db.get_user_calendars(username)
+        msgs_to_send += [protocol.pack_calendar_ids(ids)]
+        data = [ids[0]] + db.get_calendar_info(ids[0])
+        msgs_to_send += [protocol.pack_new_calendar("9", data)]
+        today = datetime.now()
+        msgs_to_send += [protocol.pack_month_events(db.get_events_of_calendar(ids[0], today.month, today.year))]
         current_users[username] = ip
     comm.send(ip, protocol.pack_sign_up(status))
-    if msg:
+    for msg in msgs_to_send:
         comm.send(ip, msg)
 
 def handle_new_calendar(ip, params):
@@ -468,6 +480,21 @@ def handle_month_events(ip, params):
     comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, month, year)))
 
 
+def handle_get_calendar_info(ip, params):
+    """
+    get calendar info and send to user
+    :param ip:
+    :param params:
+    :return:
+    """
+    info = db.get_calendar_info(params[0])
+    if info != []:
+        data = [params[0]] + db.get_calendar_info(params[0])
+        comm.send(ip, protocol.pack_new_calendar("9", data))
+        today = datetime.now()
+        comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(params[0], today.month, today.year)))
+
+
 def disconnect_client(ip, params):
     """
     delete ip from current_users and user from current_open_calendars
@@ -475,10 +502,16 @@ def disconnect_client(ip, params):
     :param params:
     :return:
     """
-    username = [i for i in current_users if current_users[i] == ip][0]
-    del current_users[username]
-    if username in current_open_calendars:
-        del current_open_calendars[username]
+    # username = next(filter(lambda item: item[1] == ip, current_users.items()), None)[0]
+    username = [i for i in current_users if current_users[i] == ip]
+    if len(username) != 0:
+        username = username[0]
+        del current_users[username]
+        if username in current_open_calendars:
+            del current_open_calendars[username]
+
+
+
 
 
 if __name__ == '__main__':
@@ -490,7 +523,7 @@ if __name__ == '__main__':
                "13": handle_is_event_accepted, "14": handle_get_invitations, "20": handle_change_name_of_calendar,
                "21": handle_change_name_of_event, "22": handle_time_change, "30": handle_delete_event,
                "31": handle_exit_calendar, "40": handle_calendar_ids, "41": handle_day_events, "42": handle_month_events,
-               "99": disconnect_client}
+               "43": handle_get_calendar_info, "99": disconnect_client}
     current_users = {} # username: ip
     current_open_calendars = {} # user: [calendar_id, month and year, day]
     current_open_calendars["test1"] = ["2", "03.2024", "02"]

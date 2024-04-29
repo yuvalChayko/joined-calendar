@@ -1,17 +1,22 @@
 from client_comm import ClientComm
 import queue
+import threading
 import client_protocol as protocol
 from datetime import datetime
 import time
+from pubsub import pub
+import wx
+from graphics import MyFrame
 
 class Params:
 
     def __init__(self):
-        self. user_calendars = []
+        self.user_calendars = []
         self.current_day = []  # full date
         self.day_events = {}  # [id, date, name, start, end, manager, [participants]]
         self.current_month = []  # month and year
         self.invitations = []
+        self.current_calendar = []  # [id, participants, name, manager]
 
 
 def handle_login(params):
@@ -23,10 +28,16 @@ def handle_login(params):
     msg_to_send = "succeed"
     if params[0] == "1":
         msg_to_send = "incorrect password"
+        call_error("incorrect password")
     elif params[0] == "2":
         msg_to_send = "incorrect username"
-    elif params[0] == 3:
+        call_error("incorrect username")
+    elif params[0] == "3":
         msg_to_send = "username already open on other computer"
+        call_error("username already open on other computer")
+    elif params[0] == "0":
+        wx.CallAfter(pub.sendMessage, "hide", panel="login")
+
     return msg_to_send
 
 
@@ -39,6 +50,7 @@ def login(username, password):
     """
     if "^" in username or "*" in username or "," in username or "$" in username or "^" in password or "*" in password or "," in password or "$" in password or len(password) < 5:
         print("not valid input")
+        call_error("not valid input")
     else:
         comm.send(protocol.pack_login(username, password))
 
@@ -49,9 +61,13 @@ def handle_sign_up(params):
     :param params:
     :return:
     """
+    print("here")
     msg_to_send = "succeed"
     if params[0] == "1":
         msg_to_send = "username already taken"
+        call_error("username already taken")
+    elif params[0] == "0":
+        wx.CallAfter(pub.sendMessage, "hide", panel="register")
 
     return msg_to_send
 
@@ -65,9 +81,18 @@ def sign_up(username, password, phone_number):
     :return:
     """
     if "^" in username or "*" in username or "," in username or "$" in username or "^" in password or "*" in password or "," in password or "$" in password or len(password) < 5 or not phone_number.isdigit() or len(phone_number) != 10:
+        call_error("not valid input")
         print("not valid input")
     else:
         comm.send(protocol.pack_signup(username, password, phone_number))
+
+def call_error(error):
+    """
+    call error
+    :param error:
+    :return:
+    """
+    wx.CallAfter(pub.sendMessage, "error", error=error)
 
 
 def handle_new_calendar(params):
@@ -82,9 +107,16 @@ def handle_new_calendar(params):
     if status == "0":
         calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
         participants = participants.split("*")
-        current_calendar.append([calendar_id, name, manager, participants])
+        global_params.current_calendar = [calendar_id, participants, name, manager]
         global_params.user_calendars.append(calendar_id)
         print(f"new calendar {data_or_not_existing_participants}")
+        wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=manager, participants=participants)
+    elif status == "9":
+        calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
+        participants = participants.split("*")
+        global_params.current_calendar = [calendar_id, participants, name, manager]
+        print(f"new calendar {data_or_not_existing_participants}")
+        wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=manager, participants=participants)
     else:
         print("couldnt open calendar because", ", ".join(data_or_not_existing_participants.split("^")), "do not exist")
 
@@ -185,8 +217,8 @@ def handle_add_participant_to_calendar(params):
     :return:
     """
     status, calendar_id, username = params
-    if current_calendar[0] == calendar_id:
-        current_calendar[1].append(username)
+    if global_params.current_calendar[0] == calendar_id:
+        global_params.current_calendar[1].append(username)
         print(f"{username} joined the calendar")
 
 
@@ -274,8 +306,8 @@ def handle_calendar_name_change(params):
     """
     status, calendar_id, name = params
     if status == "0":
-        if current_calendar[0] == calendar_id:
-            current_calendar[2] = name
+        if global_params.current_calendar[0] == calendar_id:
+            global_params.current_calendar[2] = name
             print("there is a new name for the calendar")
     else:
         print("couldnt change name of calendar because you are not the manager")
@@ -390,7 +422,7 @@ def exit_calendar(calendar_id):
     :param calendar_id:
     :return:
     """
-    if current_calendar[2] == "personal":
+    if global_params.current_calendar[2] == "personal":
         print("cant delete calendar because its a personal one")
     else:
         comm.send(protocol.pack_exit_calendar(calendar_id))
@@ -403,9 +435,9 @@ def handle_exit_calendar(params):
     :return:
     """
     username, calendar_id = params
-    if calendar_id == current_calendar[0]:
+    if calendar_id == global_params.current_calendar[0]:
         print("participant exit from calendar")
-        current_calendar[1].remove(username)
+        global_params.current_calendar[1].remove(username)
 
 
 def handle_delete_calendar(params):
@@ -416,7 +448,7 @@ def handle_delete_calendar(params):
     """
     status, calendar_id = params
     if status == "0":
-        if current_calendar[0] == calendar_id:
+        if global_params.current_calendar[0] == calendar_id:
             print("delete current calendar")
 
         global_params.user_calendars.remove(calendar_id)
@@ -441,6 +473,7 @@ def handle_calendar_ids(params):
     calendar_ids = params[0]
     calendar_ids = calendar_ids.split("^")
     global_params.user_calendars = calendar_ids
+
 
 
 def get_day_events(calendar_id, date):
@@ -503,6 +536,38 @@ def handle_month_events(params):
             date, color = i.split("^")
             month_events[date] = color
     print("got month events - show them on screen")
+    print(month_events)
+    dates = []
+    for i in month_events.keys():
+        dates += [[int(i[:2]), month_events[i]]]
+    print(dates)
+    wx.CallAfter(pub.sendMessage, "mark", dates=dates)
+
+
+def get_calendar_info(calendar_id):
+    """
+    try to get calendar info
+    :param calendar_id:
+    :return:
+    """
+    comm.send(protocol.pack_get_calendar_info(calendar_id))
+
+
+
+def handle_calendar_info(params):
+    """
+    show name, participants and month events on screen and save it on the dictionary
+    :param params:
+    :return:
+    """
+    name, participants, events = params[0].split("$")
+    participants = participants.split("*")
+    events = events.split("*")
+    if len(events) > 0 and events[0] != "":
+        for i in events:
+            date, color = i.split("^")
+            month_events[date] = color
+    print("got month events - show them on screennnnn")
 
 
 def get_invitations():
@@ -525,49 +590,12 @@ def handle_invitations(params):
     global_params.invitations = invitations
     print("got invitations, show them on screen")
 
-
-
-if __name__ == '__main__':
-    msg_q = queue.Queue()
-    comm = ClientComm('127.0.0.1', 4500, msg_q)
-    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
-               "05": handle_event_info, "10": handle_there_is_an_invitation, "11": handle_add_participant_to_calendar,
-               "13": handle_is_event_invitation_work, "14": handle_invitations, "15": handle_is_calendar_invitation_work,
-               "20": handle_calendar_name_change, "21": handle_event_name_change, "22": handle_time_change,
-               "30": handle_delete_event, "31": handle_delete_calendar, "32": handle_exit_calendar, "40": handle_calendar_ids,
-               "41": handle_day_events, "42": handle_month_events}
-    current_calendar = ["58", ["test1", "test2"], "test"]  # id, participants, name
-    month_events = {}  # date: color
-    global_params = Params()
-    global_params.day_events = [["1", "01.01.2024", "hello", "18:00", "20:00", "amit", ["amit", "alon", "yuval"]]]  # [id, date, name, start, end, manager, [participants]]
-
-
-    login("test2", "1234")
-    sign_up("test4", "1234", "4444444444")
-    new_calendar("hello", ["test3"])
-    new_event("1", "hello", ["test2"], "20:00", "21:00", "18.03.2024")
-    invite_to_calendar("test1", '21')
-    invite_to_calendar("test1", '1')
-    response_to_calendar_invitation("0", '21')
-    response_to_calendar_invitation("1", '21')
-    invite_to_event("test3", "1", "1")
-    response_event_invitation("0", "9")
-    change_name_of_calendar("new name", "1")
-    change_name_of_event("new name", "1")
-    change_time("10", "18:00", "20:00", "21.03.2024")
-    change_time("9", "18:00", "21:00", "17.03.2024")
-    change_time("9", "18:00", "21:00", "20.03.2024")
-    delete_event("10")
-    delete_event("9")
-    exit_calendar("58")
-    get_calendar_ids()
-    get_day_events("1", "12.02.2024")
-    get_month_events("1", "03", "2024")
-    get_invitations()
-
-
-
-
+def handle_recv(msg_q):
+    """
+    handle msgs from server
+    :param msg_q:
+    :return:
+    """
     while True:
         msg = msg_q.get()
         opcode, params = protocol.unpack(msg)
@@ -576,3 +604,109 @@ if __name__ == '__main__':
             print(opcodes[opcode](params))
         else:
             print(f'command number {opcode} not in dictionary')
+
+
+def handle_graphics(graphics_q):
+    """
+    handle msgs from graphics
+    :param graphics_q:
+    :return:
+    """
+    while True:
+        msg = graphics_q.get()
+        opcode, params = msg
+        print(f'got from graphics: {msg}')
+        if opcode == "register":
+            username, password, phone = params
+            sign_up(username, password, phone)
+        elif opcode == "login":
+            username, password = params
+            login(username, password)
+        elif opcode == "right":
+            current = global_params.user_calendars.index(global_params.current_calendar[0])
+            print(len(global_params.user_calendars))
+            print(current+1)
+            print(global_params.user_calendars)
+            if len(global_params.user_calendars) == (current+1):
+                call_error("can't go more right")
+            else:
+                get_calendar_info(global_params.user_calendars[current+1])
+                wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
+        elif opcode == "left":
+            current = global_params.user_calendars.index(global_params.current_calendar[0])
+            if current == 0:
+                call_error("can't go more left")
+            else:
+                get_calendar_info(global_params.user_calendars[current - 1])
+                wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
+        elif opcode == "month":
+            month, year = params
+            dates = []
+            for i in month_events.keys():
+                dates += [int(i[:2])]
+            wx.CallAfter(pub.sendMessage, "unmark", dates=dates)
+            month_events.clear()
+            get_month_events(global_params.current_calendar[0], month, year)
+
+        else:
+            print(f'command {opcode} not valid')
+
+
+
+if __name__ == '__main__':
+    msg_q = queue.Queue()
+    graphics_q = queue.Queue()
+    comm = ClientComm('127.0.0.1', 4500, msg_q)
+    opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
+               "05": handle_event_info, "10": handle_there_is_an_invitation, "11": handle_add_participant_to_calendar,
+               "13": handle_is_event_invitation_work, "14": handle_invitations, "15": handle_is_calendar_invitation_work,
+               "20": handle_calendar_name_change, "21": handle_event_name_change, "22": handle_time_change,
+               "30": handle_delete_event, "31": handle_delete_calendar, "32": handle_exit_calendar, "40": handle_calendar_ids,
+               "41": handle_day_events, "42": handle_month_events}
+    month_events = {}  # date: color
+    global_params = Params()
+    global_params.day_events = [["1", "01.01.2024", "hello", "18:00", "20:00", "amit", ["amit", "alon", "yuval"]]]  # [id, date, name, start, end, manager, [participants]]
+    # global_params.current_calendar = ["58", ["test1", "test2"], "test", "test1"]  # id, participants, name, manager
+
+
+    # login("test2", "1234")
+    # sign_up("test4", "1234", "4444444444")
+    # new_calendar("hello", ["test3"])
+    # new_event("1", "hello", ["test2"], "20:00", "21:00", "18.03.2024")
+    # invite_to_calendar("test1", '21')
+    # invite_to_calendar("test1", '1')
+    # response_to_calendar_invitation("0", '21')
+    # response_to_calendar_invitation("1", '21')
+    # invite_to_event("test3", "1", "1")
+    # response_event_invitation("0", "9")
+    # change_name_of_calendar("new name", "1")
+    # change_name_of_event("new name", "1")
+    # change_time("10", "18:00", "20:00", "21.03.2024")
+    # change_time("9", "18:00", "21:00", "17.03.2024")
+    # change_time("9", "18:00", "21:00", "20.03.2024")
+    # delete_event("10")
+    # delete_event("9")
+    # exit_calendar("58")
+    # get_calendar_ids()
+    # get_day_events("1", "12.02.2024")
+    # get_month_events("1", "03", "2024")
+    # get_invitations()
+
+
+    threading.Thread(target=handle_recv, args=(msg_q,)).start()
+    threading.Thread(target=handle_graphics, args=(graphics_q,)).start()
+
+
+    app = wx.App(False)
+    frame = MyFrame(graphics_q)
+    frame.Show()
+    app.MainLoop()
+
+    # while True:
+    #     msg = msg_q.get()
+    #     opcode, params = protocol.unpack(msg)
+    #     print(f'got from server: {msg}')
+    #     if opcode in opcodes:
+    #         print(opcodes[opcode](params))
+    #     else:
+    #         print(f'command number {opcode} not in dictionary')

@@ -1,18 +1,20 @@
 import wx
-import pubsub
+from pubsub import pub
 import wx.adv
 import wx.lib.scrolledpanel
-
+import time
+from datetime import datetime
 
 
 from wx.lib.calendar import Calendar
 from wx.adv import CalendarCtrl, GenericCalendarCtrl, CalendarDateAttr
 
 class MyFrame(wx.Frame):
-    def __init__(self, parent=None):
+    def __init__(self, graphics_q, parent=None):
         super(MyFrame, self).__init__(parent, title="joined calendar", size=(900, 700))
         self.SetMinSize(self.GetSize())
         self.SetMaxSize(self.GetSize())
+        self.graphics_q = graphics_q
         # create status bar
         self.CreateStatusBar(1)
 
@@ -32,34 +34,90 @@ class MyFrame(wx.Frame):
 class MainPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        # pubsub.pub.subscribe(self.listen, "panel_listener")
+        pub.subscribe(self.show_error_notification, "error")
+        pub.subscribe(self.show_calendar, "show calendar")
+        pub.subscribe(self.mark_dates, "mark")
+        pub.subscribe(self.unmark_dates, "unmark")
+        pub.subscribe(self.hide_panel, "hide")
         self.frame = parent
         self.SetBackgroundColour(wx.LIGHT_GREY)
-        v_box = wx.BoxSizer(wx.VERTICAL)
+        self.v_box = wx.BoxSizer(wx.VERTICAL)
         # create object for each panel
         self.login = LoginPanel(self, self.frame)
         self.first = FirstPanel(self, self.frame)
         self.registration = RegistrationPanel(self, self.frame)
         self.calendar = CalendarPanel(self, self.frame)
-        v_box.Add(self.login,1, wx.EXPAND)
-        v_box.Add(self.registration, 1,wx.EXPAND)
-        v_box.Add(self.calendar, 1,wx.EXPAND)
-        v_box.Add(self.first, 1,wx.EXPAND)
+        self.v_box.Add(self.login,1, wx.EXPAND)
+        self.v_box.Add(self.registration, 1,wx.EXPAND)
+        self.v_box.Add(self.calendar, 1,wx.EXPAND)
+        self.v_box.Add(self.first, 1,wx.EXPAND)
+
 
         # The first panel to show
-        self.SetSizer(v_box)
+        self.SetSizer(self.v_box)
         self.Layout()
+        self.first.Show()
+
+
+
+    def show_error_notification(self, error):
+        """
+        show notification
+        :return:
+        """
+        wx.MessageBox(error, "Error", wx.OK | wx.ICON_ERROR)
+
+
+    def show_calendar(self, name, manager, participants):
+        """
+        show calendar
+        :param name:
+        :param manager:
+        :param participants:
+        :return:
+        """
+        # self.calendar.change_calendar(name, manager, participants)
+        self.v_box.Detach(self.calendar)
+        self.calendar = CalendarPanel(self, self.frame, name, participants, manager)
+        self.v_box.Add(self.calendar, 1, wx.EXPAND)
+        # print("here")
+        # print(name)
+        # self.SetSizerAndFit(self.v_box)
+        self.SetSizer(self.v_box)
         self.calendar.Show()
 
 
-    def listen(self, msg, param=None):
+
+    def hide_panel(self, panel):
         """
-        listener
-        :param msg:
-        :param param:
+        hide panel
+        :param panel:
         :return:
         """
-        pass
+        if panel == "login":
+            self.login.Hide()
+        elif panel == "register":
+            self.registration.Hide()
+        elif panel == "calendar":
+            self.calendar.Hide()
+
+
+    def mark_dates(self, dates):
+        """
+        mark dates with events
+        :param dates:
+        :return:
+        """
+        self.calendar.mark_dates(dates)
+
+
+    def unmark_dates(self, dates):
+        """
+        unmark dates with events
+        :param dates:
+        :return:
+        """
+        self.calendar.unmark_dates(dates)
 
 
 class LoginPanel(wx.Panel):
@@ -148,7 +206,8 @@ class LoginPanel(wx.Panel):
         if not username or not password :
             self.frame.SetStatusText("Must enter name and password")
         else:
-            self.frame.SetStatusText("waiting for Server approve")
+            # self.frame.SetStatusText("waiting for Server approve")
+            self.frame.graphics_q.put(("login", (username, password)))
 
     def handle_back(self, event):
         self.frame.SetStatusText("")
@@ -249,7 +308,8 @@ class RegistrationPanel(wx.Panel):
         if not username or not password or not phone:
             self.frame.SetStatusText("Must enter name, password and phone")
         else:
-            self.frame.SetStatusText("waiting for Server approve")
+            # self.frame.SetStatusText("waiting for Server approve")
+            self.frame.graphics_q.put(("register", (username, password, phone)))
 
     def handle_back(self, event):
         self.frame.SetStatusText("")
@@ -305,14 +365,11 @@ class FirstPanel(wx.Panel):
 
 
 class CalendarPanel(wx.Panel):
-    def __init__(self, parent, frame,name="Hello"):
-        wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
+    def __init__(self, parent, frame, name="personal", participants=None, manager="1"):
+        wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
         self.frame = frame
         self.parent = parent
         self.SetBackgroundColour(wx.LIGHT_GREY)
-
-
-
         self.events = []
 
         title_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -387,7 +444,7 @@ class CalendarPanel(wx.Panel):
         newBtn = wx.Button(self, wx.ID_ANY, label="new calendar", size=(100, 40))
         newBtn.Bind(wx.EVT_BUTTON, self.new_calendar)
         btnBox.Add(newBtn, 0, wx.ALL, 5)
-        self.myScrolled = ParticipantsPanel(self, self.frame,self.partBtn)
+        self.myScrolled = ParticipantsPanel(self, self.frame,self.partBtn, participants)
 
 
         mainbox.Add(btnBox)
@@ -408,7 +465,14 @@ class CalendarPanel(wx.Panel):
         self.cal = GenericCalendarCtrl(self, -1, wx.DateTime().Today(),
                                    style = wx.adv.CAL_SUNDAY_FIRST
                                         | wx.adv.CAL_SEQUENTIAL_MONTH_SELECTION,name="cal-2",size=(720,450))
+        # self.cal.SetHolidayColours(wx.BLUE, wx.BLUE)
+        # self.cal.SetHoliday(21)
+        # self.cal.SetHolidayColours(wx.GREEN, wx.GREEN)
+        # self.cal.SetHoliday(22)
 
+        # self.cal.SetAttr(21, wx.adv.CalendarDateAttr(colBack='green'))
+        # self.cal.SetAttr(22, wx.adv.CalendarDateAttr(colBack='blue'))
+        # self.cal.ResetAttr(21)
         self.cal.SetFont(calfont)
 
 
@@ -429,6 +493,8 @@ class CalendarPanel(wx.Panel):
         self.cal.Bind(wx.adv.EVT_CALENDAR_MONTH, self.OnChangeMonth)
         self.cal.Bind(wx.adv.EVT_CALENDAR_SEL_CHANGED, self.OnCalSelChanged)
         self.cal.Bind(wx.adv.EVT_CALENDAR_WEEKDAY_CLICKED, self.OnCalWeekdayClicked)
+        today = datetime.now()
+        self.current_month = str(today.month).zfill(2)
 
         # create some sizers for layout
         #fgs = wx.FlexGridSizer(cols=2, hgap=50, vgap=50)
@@ -450,8 +516,18 @@ class CalendarPanel(wx.Panel):
         self.SetSizer(mainbox)
         # arrange the screen
         # self.SetSizer(sizer)
-        # self.Layout()
+        self.Layout()
         self.Hide()
+
+    # def change_calendar(self, name, manager, participants):
+    #     """
+    #     change calendar on screen
+    #     :param name:
+    #     :param manager:
+    #     :param participants:
+    #     :return:
+    #     """
+
 
     def OnCalSelected(self, evt):
         print('OnCalSelected: %s\n' % evt.Date)
@@ -469,11 +545,22 @@ class CalendarPanel(wx.Panel):
 
     def OnCalSelChanged(self, evt):
         cal = evt.GetEventObject()
-        print("OnCalSelChanged:\n\t%s: %s\n\t%s: %s" %
-                       ("EventObject", cal.__class__,
-                        "Date       ", cal.GetDate(),
-                        ))
-        print('name: %s\n' % cal.GetName())
+        # print("OnCalSelChanged:\n\t%s: %s\n\t%s: %s" %
+        #                ("EventObject", cal.__class__,
+        #                 "Date       ", cal.GetDate(),
+        #                 ))
+        # print('name: %s\n' % cal.GetName())
+        month = str(cal.GetDate())[4:7]
+        monthes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        month_num = str(monthes.index(month) + 1).zfill(2)
+        print(month_num)
+        print(self.current_month)
+        if month_num != self.current_month:
+            self.current_month = month_num
+            year = str(cal.GetDate())[-4:]
+            self.frame.graphics_q.put(("month", (month_num, year)))
+
+
 
     def OnChangeMonth(self, evt=None):
         if evt is None:
@@ -495,9 +582,12 @@ class CalendarPanel(wx.Panel):
 
     def left_cal(self, evt):
         print("scroll to left cal")
+        self.frame.graphics_q.put(("left", ()))
 
     def right_cal(self, evt):
         print("scroll to right cal")
+        self.frame.graphics_q.put(("right", ()))
+
 
     def change_calendar_name(self, evt):
         print("try to change calendar name")
@@ -505,16 +595,26 @@ class CalendarPanel(wx.Panel):
     def add_calendar_participant(self, evt):
         print("try to add participant to calendar")
 
+    def mark_dates(self, dates):
+        for i in dates:
+            self.cal.SetAttr(i[0], wx.adv.CalendarDateAttr(colBack=i[1]))
+
+    def unmark_dates(self, dates):
+        for i in dates:
+            self.cal.ResetAttr(i)
+
 
 
 
 class ParticipantsPanel(wx.Panel):
-    def __init__(self, parent, frame, btn):
+    def __init__(self, parent, frame, btn, participants):
         wx.Panel.__init__(self, parent,size=(100,140),pos=(0,0))
-
         self.frame = frame
         self.parent = parent
-        self.participants = ['aa','bb','bb','kj','jh']
+        if participants:
+            self.participants = participants
+        else:
+            self.participants = ["1", "2", "3"]
         self.participantsBTN = btn
 
         self.main_box = wx.BoxSizer(wx.VERTICAL)

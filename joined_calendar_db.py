@@ -52,17 +52,15 @@ class joined_calendar_db:
         [self.db_cursor.execute(x) for x in sql_table]
         self.db_conn.commit()
 
-
-
-    def _is_calendar_exists(self, id):
+    def _is_calendar_exists(self, calendar_id):
         """
         check if calendar exists
-        :param id: str
+        :param calendar_id: str
         :return: bool
         """
         sql_table = "SELECT calendar_id FROM " + self.calendars + " WHERE calendar_id = ?"
-
-        self.db_cursor.execute(sql_table, (id,))
+        print(f"hereeee {calendar_id}")
+        self.db_cursor.execute(sql_table, (calendar_id,))
         return self.db_cursor.fetchone() is not None
 
     def _is_event_exists(self, id):
@@ -723,7 +721,6 @@ class joined_calendar_db:
         calendars = self.db_cursor.fetchall()
         calendars = [x[0] for x in calendars]
         personal_id = str(self.get_personal_calendar(username))
-        print(f"hereeeeee{personal_id} and {calendars}")
         calendars.remove(personal_id)
         calendars = [personal_id] + calendars
         return calendars
