@@ -27,6 +27,8 @@ def handle_login(ip, params):
         data = [ids[0]] + db.get_calendar_info(ids[0])
         msgs_to_send += [protocol.pack_new_calendar("9", data)]
         today = datetime.now()
+        current_open_calendars[username] = [ids[0], str(today.month)+"."+str(today.year)]  # user: [calendar_id, month and year]
+        print("hereeeeeeeee")
         msgs_to_send += [protocol.pack_month_events(db.get_events_of_calendar(ids[0], today.month, today.year))]
 
         if db.get_calendar_invitations(username) or db.get_event_invitations(username):
@@ -58,6 +60,7 @@ def handle_sign_up(ip, params):
         data = [ids[0]] + db.get_calendar_info(ids[0])
         msgs_to_send += [protocol.pack_new_calendar("9", data)]
         today = datetime.now()
+        current_open_calendars[username] = [ids[0], str(today.month)+"."+str(today.year)]  # user: [calendar_id, month and year]
         msgs_to_send += [protocol.pack_month_events(db.get_events_of_calendar(ids[0], today.month, today.year))]
         current_users[username] = ip
     comm.send(ip, protocol.pack_sign_up(status))
@@ -79,6 +82,7 @@ def handle_new_calendar(ip, params):
         id = db.add_calendar(name, username)
         comm.send(ip, protocol.pack_new_calendar("0", [id, name, username, [username]]))
         today = datetime.now()
+        current_open_calendars[username] = [id, str(today.month)+"."+str(today.year)]  # user: [calendar_id, month and year]
         comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(id, today.month, today.year)))
         for i in participants:
             db.add_calendar_invitation(id, username, i)
@@ -175,6 +179,8 @@ def handle_is_calendar_accepted(ip, params):
         # today = datetime.now()
         info = db.get_calendar_info(calendar_id)
         comm.send(ip, protocol.pack_new_calendar(status, [calendar_id, info[0], info[1], info[2]]))
+        today = datetime.now()
+        current_open_calendars[username] = [calendar_id, str(today.month)+"."+str(today.year)]  # user: [calendar_id, month and year]
         # comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, today.month, today.year)))
         for user in current_open_calendars:
             if current_open_calendars[user][0] == calendar_id:
@@ -391,10 +397,12 @@ def handle_exit_calendar(ip, params):
 
         if status == 3:
             comm.send(ip, protocol.pack_delete_calendar("0", calendar_id))
-            today = datetime.now()
             personal_id = db.get_personal_calendar(username)
             info = [personal_id, "personal", username, [username]]
             comm.send(ip, protocol.pack_new_calendar("0", info))
+            today = datetime.now()
+            current_open_calendars[username] = [personal_id, str(today.month) + "." + str(today.year)]  # user: [calendar_id, month and year]
+
             comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
             for user in current_users:
                 if current_open_calendars[user][0] == calendar_id:
@@ -414,6 +422,8 @@ def handle_exit_calendar(ip, params):
             personal_id = db.get_personal_calendar(username)
             info = [personal_id, "personal", username, [username]]
             comm.send(ip, protocol.pack_new_calendar("0", info))
+            today = datetime.now()
+            current_open_calendars[username] = [personal_id, str(today.month) + "." + str(today.year)]  # user: [calendar_id, month and year]
             comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
             for user in current_users:
                 if current_open_calendars[user][0] == calendar_id:
@@ -435,6 +445,8 @@ def handle_exit_calendar(ip, params):
                         personal_id = db.get_personal_calendar(user)
                         info = [personal_id, "personal", user, [user]]
                         comm.send(current_users[user], protocol.pack_new_calendar("0", info))
+                        today = datetime.now()
+                        current_open_calendars[user] = [personal_id, str(today.month) + "." + str(today.year)]  # user: [calendar_id, month and year]
                         comm.send(current_users[user], protocol.pack_month_events(
                             db.get_events_of_calendar(personal_id, today.month, today.year)))
                 else:
@@ -476,7 +488,11 @@ def handle_month_events(ip, params):
     :param params: calendar_id, month, year
     :return:
     """
+    username = [i for i in current_users if current_users[i] == ip][0]
     calendar_id, month, year = params
+    current_open_calendars[username] = [calendar_id,
+                                        str(month) + "." + str(year)]  # user: [calendar_id, month and year]
+
     comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(calendar_id, month, year)))
 
 
@@ -487,11 +503,13 @@ def handle_get_calendar_info(ip, params):
     :param params:
     :return:
     """
+    username = [i for i in current_users if current_users[i] == ip][0]
     info = db.get_calendar_info(params[0])
     if info != []:
         data = [params[0]] + db.get_calendar_info(params[0])
         comm.send(ip, protocol.pack_new_calendar("9", data))
         today = datetime.now()
+        current_open_calendars[username] = [params[0], str(today.month) + "." + str(today.year)]  # user: [calendar_id, month and year]
         comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(params[0], today.month, today.year)))
 
 

@@ -13,10 +13,11 @@ class Params:
     def __init__(self):
         self.user_calendars = []
         self.current_day = []  # full date
-        self.day_events = {}  # [id, date, name, start, end, manager, [participants]]
+        self.day_events = [] # [participants, name, start, end, date, manager]
         self.current_month = []  # month and year
         self.invitations = []
         self.current_calendar = []  # [id, participants, name, manager]
+        self.current_event = 0
 
 
 def handle_login(params):
@@ -502,11 +503,23 @@ def handle_day_events(params):
     :param params: day_events
     :return:
     """
-    events = params[0].split("*")
-    for i in range(len(events)):
-        events[i] = events[i].split("^")
-    global_params.day_events = events
-    print("got day events, show them on screen")
+    print(params)
+
+    if params[0] != "":
+        events = params[0].split("*")
+        for i in range(len(events)):
+            events[i] = events[i].split("^")
+            events[i][0] = events[i][0].split("$")
+        print(events)
+        global_params.day_events = events
+        global_params.current_event = 0
+        print("got day events, show them on screen")
+        event = events[0]
+    else:
+        global_params.day_events = []
+        event = [global_params.current_day][0]
+
+    wx.CallAfter(pub.sendMessage, "show day", event=event)
 
 
 def get_month_events(calendar_id, month, year):
@@ -637,16 +650,36 @@ def handle_graphics(graphics_q):
             if current == 0:
                 call_error("can't go more left")
             else:
-                get_calendar_info(global_params.user_calendars[current - 1])
+                get_calendar_info(global_params.user_calendars[current-1])
                 wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
         elif opcode == "month":
             month, year = params
+            global_params.current_month = [month, year]
             dates = []
             for i in month_events.keys():
                 dates += [int(i[:2])]
             wx.CallAfter(pub.sendMessage, "unmark", dates=dates)
             month_events.clear()
             get_month_events(global_params.current_calendar[0], month, year)
+        elif opcode == "day":
+            date = params
+            wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
+            get_day_events(global_params.current_calendar[0], date)
+        elif opcode == "left event":
+            if global_params.current_event == 0:
+                call_error("can't go more left")
+            else:
+                global_params.current_event = global_params.current_event - 1
+                wx.CallAfter(pub.sendMessage, "hide", panel="event")
+                wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
+        elif opcode == "right event":
+            if (global_params.current_event + 1) == len(global_params.day_events):
+                call_error("can't go more right")
+            else:
+                global_params.current_event = global_params.current_event + 1
+                wx.CallAfter(pub.sendMessage, "hide", panel="event")
+                wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
+
 
         else:
             print(f'command {opcode} not valid')

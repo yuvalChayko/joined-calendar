@@ -16,8 +16,8 @@ class joined_calendar_db:
         self.calendar_invitations = "calendar_invitations"
         self.event_invitations = "event_invitations"
         self.reminders = "reminders"
-        self.colors = ['BLUE', 'YELLOW', 'RED', 'GREEN', 'PURPLE','PINK', 'GREY', 'ORANGE', 'BROWN', 'GOLD', 'TURQUOISE', 'LIGHT BLUE', 'LIME GREEN', 'SALMON', 'DARK OLIVE GREEN']
-        self.joined_color = 'BLACK'
+        self.colors = ['BLUE', 'YELLOW', 'GREEN', 'PURPLE','PINK', 'GREY', 'ORANGE', 'BROWN', 'GOLD', 'TURQUOISE', 'LIGHT BLUE', 'LIME GREEN', 'SALMON', 'DARK OLIVE GREEN']
+        self.joined_color = 'RED'
         self.last_event_id = 1000
         self.last_calendar_id = 100
 
@@ -794,24 +794,35 @@ class joined_calendar_db:
         day, month, year = date.split('.')
         day_events = None
         if self._is_calendar_exists(calendar_id):
-            day_ids = self.get_day_ids(calendar_id, date)
+            print("exists")
+            day_ids = self.get_day_ids(username, date)
+            print(day_ids)
             day_events = []
             for id in day_ids:
                 day_events += [self.get_event_info(id, username, calendar_id)]
+        print(f"day events {day_events}")
         return day_events
 
-    def get_day_ids(self, calendar_id, date):
+    def get_day_ids(self, participant, date):
         """
         get list of this day calendars events ids
-        :param calendar_id:
+        :param participant:
         :param date:
         :return:
         """
-        sql = "SELECT event_id FROM " + self.event_info + " WHERE date = ? AND calendar_id = ?"
-        self.db_cursor.execute(sql, (date, calendar_id, ))
+        print(f" date {date}")
+        sql = "SELECT event_id FROM " + self.event_info + " WHERE date = ?"
+        self.db_cursor.execute(sql, (date, ))
         event_ids = self.db_cursor.fetchall()
-        event_ids = [i[0] for i in event_ids]
-        return event_ids
+        event_ids = set([str(i[0]) for i in event_ids])
+        print(event_ids)
+        sql = "SELECT event_id FROM " + self.events_participants + " WHERE participant = ?"
+        self.db_cursor.execute(sql, (participant,))
+        event_ids2 = self.db_cursor.fetchall()
+        event_ids2 = set([i[0] for i in event_ids2])
+        print(event_ids2)
+        final = list(event_ids & event_ids2)
+        return final
 
     def get_calendar_info(self, calendar_id):
         """
@@ -859,11 +870,11 @@ class joined_calendar_db:
             if len(temp) != 0:
                 if len(day_color) == 0:
                     day_color = temp
-                    if temp[1] == 'BLACK':
+                    if temp[1] == 'RED':
                         break
                 else:
                     if temp[1] != day_color[1]:
-                        day_color[1] = 'BLACK'
+                        day_color[1] = 'RED'
                         break
         return day_color
 

@@ -39,6 +39,7 @@ class MainPanel(wx.Panel):
         pub.subscribe(self.mark_dates, "mark")
         pub.subscribe(self.unmark_dates, "unmark")
         pub.subscribe(self.hide_panel, "hide")
+        pub.subscribe(self.show_day, "show day")
         self.frame = parent
         self.SetBackgroundColour(wx.LIGHT_GREY)
         self.v_box = wx.BoxSizer(wx.VERTICAL)
@@ -47,10 +48,12 @@ class MainPanel(wx.Panel):
         self.first = FirstPanel(self, self.frame)
         self.registration = RegistrationPanel(self, self.frame)
         self.calendar = CalendarPanel(self, self.frame)
+        self.event = EventPanel(self, self.frame)
         self.v_box.Add(self.login,1, wx.EXPAND)
         self.v_box.Add(self.registration, 1,wx.EXPAND)
         self.v_box.Add(self.calendar, 1,wx.EXPAND)
         self.v_box.Add(self.first, 1,wx.EXPAND)
+        self.v_box.Add(self.event, 1,wx.EXPAND)
 
 
         # The first panel to show
@@ -100,6 +103,8 @@ class MainPanel(wx.Panel):
             self.registration.Hide()
         elif panel == "calendar":
             self.calendar.Hide()
+        elif panel == "event":
+            self.event.Hide()
 
 
     def mark_dates(self, dates):
@@ -118,6 +123,34 @@ class MainPanel(wx.Panel):
         :return:
         """
         self.calendar.unmark_dates(dates)
+
+
+    def show_day(self, event):
+        """
+        show day events
+        :param events:
+        :return:
+        """
+        print(f"here {event}")
+        self.v_box.Detach(self.event)
+        self.event.events = event # [id, date, name, start, end, manager, [participants]]
+        if type(event) is list:
+            self.event = EventPanel(self, self.frame, event[1], event[0], event[-1], event[-2], event[2], event[3])
+        else:
+            self.event = EventPanel(self, self.frame, date=event)
+
+        self.v_box.Add(self.event, 1, wx.EXPAND)
+        # print("here")
+        # print(name)
+        # self.SetSizerAndFit(self.v_box)
+        self.SetSizer(self.v_box)
+        self.event.Show()
+        # else:
+        #     self.v_box.Detach(self.no_events)
+        #     self.no_events = NoEventsPanel(self, self.frame, event[0])
+        #     self.v_box.Add(self.no_events, 1, wx.EXPAND)
+        #     self.SetSizer(self.v_box)
+        #     self.no_events.Show()
 
 
 class LoginPanel(wx.Panel):
@@ -553,12 +586,16 @@ class CalendarPanel(wx.Panel):
         month = str(cal.GetDate())[4:7]
         monthes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         month_num = str(monthes.index(month) + 1).zfill(2)
+        year = str(cal.GetDate())[-4:]
         print(month_num)
         print(self.current_month)
-        if month_num != self.current_month:
+        if month_num != self.current_month:  # month change
             self.current_month = month_num
-            year = str(cal.GetDate())[-4:]
             self.frame.graphics_q.put(("month", (month_num, year)))
+        else:  # day sellected
+            day = str(cal.GetDate())[8:10]
+            day = day.replace(" ", "0")
+            self.frame.graphics_q.put(("day", (day+"."+month_num+"."+year)))
 
 
 
@@ -596,12 +633,15 @@ class CalendarPanel(wx.Panel):
         print("try to add participant to calendar")
 
     def mark_dates(self, dates):
+        print(f"mark {dates}")
         for i in dates:
             self.cal.SetAttr(i[0], wx.adv.CalendarDateAttr(colBack=i[1]))
+        self.Layout()
 
     def unmark_dates(self, dates):
         for i in dates:
             self.cal.ResetAttr(i)
+        self.Layout()
 
 
 
@@ -683,6 +723,179 @@ class ParticipantsPanel(wx.Panel):
 
         self.SetSizer(self.main_box)
         self.Layout()
+
+
+class EventPanel(wx.Panel):
+    def __init__(self, parent, frame, name="test", participants=None, manager="1", date="01.01.2024", start = "16:00", end="18:00"):
+        wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
+        self.frame = frame
+        self.parent = parent
+        self.SetBackgroundColour(wx.LIGHT_GREY)
+        self.events = []
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        btnBox = wx.BoxSizer(wx.HORIZONTAL)
+        self.backBtn = wx.Button(self, wx.ID_ANY, label="back", size=(100, 40))
+        self.backBtn.Bind(wx.EVT_BUTTON, self.go_back)
+        btnBox.Add(self.backBtn, 1, wx.ALL, 5)
+        btnBox.AddSpacer(650)
+        newBtn = wx.Button(self, wx.ID_ANY, label="new event", size=(100, 40))
+        newBtn.Bind(wx.EVT_BUTTON, self.new_event)
+        btnBox.Add(newBtn, 0, wx.ALL, 5)
+        mainbox.AddSpacer(10)
+        mainbox.Add(btnBox)
+        if participants:
+            title_row = wx.BoxSizer(wx.HORIZONTAL)
+            # title
+            title = wx.StaticText(self, -1, label=name)
+            titlefont = wx.Font(45, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+            eventfont = wx.Font(25, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+            smallTitleFont = wx.Font(20, wx.DECORATIVE, wx.NORMAL, wx.BOLD)
+            title.SetForegroundColour(wx.BLACK)
+            title.SetFont(titlefont)
+            #arrrow button
+            left = wx.Image("pics\\left.png")
+            left.Rescale(100, 80)
+            right = wx.Image("pics\\right.png")
+            right.Rescale(100, 80)
+            left = wx.Bitmap(left)
+            right = wx.Bitmap(right)
+            # create button at point (20, 20)
+            self.leftBtn = wx.BitmapButton(self,
+                                size=(100, 80), pos=(100,50), name="button", bitmap=left)
+            self.leftBtn.SetBackgroundColour(wx.LIGHT_GREY)
+            self.leftBtn.SetWindowStyleFlag(wx.NO_BORDER)
+            self.rightBtn = wx.BitmapButton(self,
+                                           size=(100, 80), pos=(660, 50), name="button", bitmap=right)
+            self.rightBtn.SetBackgroundColour(wx.LIGHT_GREY)
+            self.rightBtn.SetWindowStyleFlag(wx.NO_BORDER)
+            self.leftBtn.Bind(wx.EVT_BUTTON, self.left_event)
+            self.rightBtn.Bind(wx.EVT_BUTTON, self.right_event)
+
+            # set bmp as bitmap for button
+            title_row.Add(self.leftBtn, 1, wx.ALL, 5)
+            title_row.AddSpacer(200)
+            title_row.Add(title, 1, wx.ALL, 5)
+            title_row.AddSpacer(200)
+            title_row.Add(self.rightBtn, 1, wx.ALL, 5)
+
+
+            date_row = wx.BoxSizer(wx.HORIZONTAL)
+            date = wx.StaticText(self, -1, label=date)
+            date.SetForegroundColour(wx.BLACK)
+            date.SetFont(eventfont)
+            date_title = wx.StaticText(self, -1, label="Date:   ")
+            date_title.SetForegroundColour(wx.BLACK)
+            date_title.SetFont(smallTitleFont)
+            date_row.Add(date_title)
+            date_row.Add(date)
+            participants_str = ", ".join(participants)
+            participants_row = wx.BoxSizer(wx.HORIZONTAL)
+            parti = wx.StaticText(self, -1, label=participants_str)
+            parti.SetForegroundColour(wx.BLACK)
+            parti.SetFont(eventfont)
+            parti_title = wx.StaticText(self, -1, label="Participants:   ")
+            parti_title.SetForegroundColour(wx.BLACK)
+            parti_title.SetFont(smallTitleFont)
+            participants_row.Add(parti_title)
+            participants_row.Add(parti)
+            time_str = start + " - " + end
+            time_row = wx.BoxSizer(wx.HORIZONTAL)
+            time = wx.StaticText(self, -1, label=time_str)
+            time.SetForegroundColour(wx.BLACK)
+            time.SetFont(eventfont)
+            time_title = wx.StaticText(self, -1, label="Time:   ")
+            time_title.SetForegroundColour(wx.BLACK)
+            time_title.SetFont(smallTitleFont)
+            time_row.Add(time_title)
+            time_row.Add(time)
+            manager_row = wx.BoxSizer(wx.HORIZONTAL)
+            manager = wx.StaticText(self, -1, label=manager)
+            manager.SetForegroundColour(wx.BLACK)
+            manager.SetFont(eventfont)
+            manager_title = wx.StaticText(self, -1, label="Manager:   ")
+            manager_title.SetForegroundColour(wx.BLACK)
+            manager_title.SetFont(smallTitleFont)
+            manager_row.Add(manager_title)
+            manager_row.Add(manager)
+
+            buttons = wx.BoxSizer(wx.HORIZONTAL)
+            self.editTimeBtn = wx.Button(self, wx.ID_ANY, label="change time", size=(100, 40))
+            self.editTimeBtn.Bind(wx.EVT_BUTTON, self.change_time)
+            buttons.Add(self.editTimeBtn, 1, wx.ALL, 5)
+            buttons.AddSpacer(30)
+            editNameBtn = wx.Button(self, wx.ID_ANY, label="change name", size=(100, 40))
+            editNameBtn.Bind(wx.EVT_BUTTON, self.change_name)
+            buttons.Add(editNameBtn, 0, wx.ALL, 5)
+            buttons.AddSpacer(30)
+            delBtn = wx.Button(self, wx.ID_ANY, label="delete event", size=(100, 40))
+            delBtn.Bind(wx.EVT_BUTTON, self.del_event)
+            buttons.Add(delBtn, 0, wx.ALL, 5)
+
+            mainbox.AddSpacer(40)
+            mainbox.Add(title_row, 0, wx.CENTER)
+            mainbox.AddSpacer(40)
+            mainbox.Add(date_row, 0, wx.CENTER)
+            mainbox.AddSpacer(20)
+            mainbox.Add(participants_row, 0, wx.CENTER)
+            mainbox.AddSpacer(20)
+            mainbox.Add(time_row, 0, wx.CENTER)
+            mainbox.AddSpacer(20)
+            mainbox.Add(manager_row, 0, wx.CENTER)
+            mainbox.AddSpacer(50)
+            mainbox.Add(buttons, 0, wx.CENTER)
+
+        else:
+            # title
+            print("hereeeee")
+            print(date)
+            words = wx.BoxSizer(wx.VERTICAL)
+            title = wx.StaticText(self, -1, label="There are no events on")
+            titlefont = wx.Font(45, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+            title.SetForegroundColour(wx.BLACK)
+            title.SetFont(titlefont)
+            date = wx.StaticText(self, -1, label=date)
+            date.SetForegroundColour(wx.BLACK)
+            date.SetFont(titlefont)
+            words.Add(title, 0, wx.CENTER)
+            words.AddSpacer(30)
+            words.Add(date, 0, wx.CENTER)
+            mainbox.AddSpacer(200)
+            mainbox.Add(words, 1, wx.CENTER)
+
+            self.SetSizer(mainbox)
+            self.Layout()
+            self.Hide()
+
+        self.SetSizer(mainbox)
+        self.Layout()
+        self.Hide()
+
+
+    def left_event(self, evt):
+        print("scroll to left event")
+        self.frame.graphics_q.put(("left event", ()))
+
+    def right_event(self, evt):
+        print("scroll to right event")
+        self.frame.graphics_q.put(("right event", ()))
+
+    def go_back(self, evt):
+        self.Hide()
+        self.parent.calendar.Show()
+
+    def new_event(self, evt):
+        pass
+
+    def del_event(self, evt):
+        pass
+
+    def change_name(self, evt):
+        pass
+
+    def change_time(self, evt):
+        pass
+
+
 
 if __name__ == '__main__':
     app = wx.App(False)

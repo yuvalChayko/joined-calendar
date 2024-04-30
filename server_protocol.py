@@ -190,6 +190,7 @@ def pack_day_events(day_events):
 
     day_events = ["^".join(x) for x in day_events]
     day_events = "*".join(day_events)
+    print(f"hello {day_events}")
     return f"41{day_events}"
 
 def pack_month_events(month_events):
