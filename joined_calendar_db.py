@@ -653,7 +653,19 @@ class joined_calendar_db:
         self.db_cursor.execute(sql, (username,))
         invitations = self.db_cursor.fetchall()
         invitations = [x for x in invitations]
-        return invitations
+        final = []
+        participants = []
+        sql2 = "SELECT name FROM " + self.calendars + " WHERE calendar_id = ?"
+        sql = "SELECT participant FROM " + self.calendars_participants + " WHERE calendar_id = ?"
+        for i in invitations:
+            self.db_cursor.execute(sql, (i[1],))
+            participants = self.db_cursor.fetchall()
+            participants = [x[0] for x in participants]
+            self.db_cursor.execute(sql2, (i[1],))
+            name = self.db_cursor.fetchone()[0]
+            final.append([name, i[0], participants, i[1]])
+
+        return final
 
     def get_event_invitations(self, username):
         """
@@ -666,7 +678,18 @@ class joined_calendar_db:
         self.db_cursor.execute(sql, (username,))
         invitations = self.db_cursor.fetchall()
         invitations = [x for x in invitations]
-        return invitations
+        final = []
+        participants = []
+        sql2 = "SELECT name, date, start_hour, end_hour FROM " + self.event_info + " WHERE event_id = ?"
+        sql = "SELECT participant FROM " + self.events_participants + " WHERE event_id = ?"
+        for i in invitations:
+            self.db_cursor.execute(sql, (i[1],))
+            participants = self.db_cursor.fetchall()
+            participants = [x[0] for x in participants]
+            self.db_cursor.execute(sql2, (i[1],))
+            name, date, start, end = self.db_cursor.fetchone()
+            final.append([name, i[0], participants, date, start, end, i[1]])
+        return final
 
     def delete_calendar_invitation(self, username, id):
         """
@@ -770,6 +793,7 @@ class joined_calendar_db:
                     else:
                         events.append(temp)
 
+        print(f"in db-------------------------{events}")
         return events
 
     def get_color(self, username, calendar_id):

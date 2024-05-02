@@ -36,6 +36,7 @@ class MainPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         pub.subscribe(self.show_error_notification, "error")
         pub.subscribe(self.show_calendar, "show calendar")
+        pub.subscribe(self.show_invitation, "show invitation")
         pub.subscribe(self.mark_dates, "mark")
         pub.subscribe(self.unmark_dates, "unmark")
         pub.subscribe(self.hide_panel, "hide")
@@ -48,12 +49,18 @@ class MainPanel(wx.Panel):
         self.first = FirstPanel(self, self.frame)
         self.registration = RegistrationPanel(self, self.frame)
         self.calendar = CalendarPanel(self, self.frame)
+        self.new_cal = newCalendarPanel(self, self.frame)
         self.event = EventPanel(self, self.frame)
-        self.v_box.Add(self.login,1, wx.EXPAND)
-        self.v_box.Add(self.registration, 1,wx.EXPAND)
-        self.v_box.Add(self.calendar, 1,wx.EXPAND)
-        self.v_box.Add(self.first, 1,wx.EXPAND)
-        self.v_box.Add(self.event, 1,wx.EXPAND)
+        self.new_cal_parti = newCalendarParticipantPanel(self, self.frame)
+        self.invitations = invitationsPanel(self, self.frame)
+        self.v_box.Add(self.login, 1, wx.EXPAND)
+        self.v_box.Add(self.registration, 1, wx.EXPAND)
+        self.v_box.Add(self.calendar, 1, wx.EXPAND)
+        self.v_box.Add(self.first, 1, wx.EXPAND)
+        self.v_box.Add(self.event, 1, wx.EXPAND)
+        self.v_box.Add(self.new_cal, 1, wx.EXPAND)
+        self.v_box.Add(self.new_cal_parti, 1, wx.EXPAND)
+        self.v_box.Add(self.invitations, 1, wx.EXPAND)
 
 
         # The first panel to show
@@ -87,9 +94,26 @@ class MainPanel(wx.Panel):
         # print(name)
         # self.SetSizerAndFit(self.v_box)
         self.SetSizer(self.v_box)
+        self.frame.SetStatusText("Red is the joined color")
         self.calendar.Show()
 
-
+    def show_invitation(self, params):
+        """
+        show invitations
+        :param params: name, manager, start, end, date, participants, id or name, manager, participants, id
+        :return:
+        """
+        print(f"in invitations {params}")
+        self.v_box.Detach(self.invitations)
+        if len(params) == 7:
+            self.invitations = invitationsPanel(self, self.frame, params[0], params[2], params[1], params[3], params[4], params[5])
+        elif len(params) == 4:
+            self.invitations = invitationsPanel(self, self.frame, name=params[0], manager=params[1], participants=params[-2])
+        else:
+            self.invitations = invitationsPanel(self, self.frame)
+        self.v_box.Add(self.invitations, 1, wx.EXPAND)
+        self.SetSizer(self.v_box)
+        self.invitations.Show()
 
     def hide_panel(self, panel):
         """
@@ -102,10 +126,20 @@ class MainPanel(wx.Panel):
         elif panel == "register":
             self.registration.Hide()
         elif panel == "calendar":
+            self.frame.SetStatusText("")
             self.calendar.Hide()
         elif panel == "event":
             self.event.Hide()
-
+        elif panel == "new cal":
+            self.frame.SetStatusText("")
+            self.new_cal.Hide()
+        elif panel == "new cal parti":
+            self.frame.SetStatusText("")
+            self.new_cal_parti.Hide()
+            self.frame.SetStatusText("Red is the joined color")
+            self.calendar.Show()
+        elif panel == "invitation":
+            self.invitations.Hide()
 
     def mark_dates(self, dates):
         """
@@ -113,6 +147,7 @@ class MainPanel(wx.Panel):
         :param dates:
         :return:
         """
+        print("in parent", dates)
         self.calendar.mark_dates(dates)
 
 
@@ -231,6 +266,7 @@ class LoginPanel(wx.Panel):
         self.SetSizer(sizer)
         self.Layout()
         self.Hide()
+
 
 
     def handle_login(self, event):
@@ -456,7 +492,7 @@ class CalendarPanel(wx.Panel):
         # p_text = wx.StaticText(self, -1, "participants: ", pos = (430, 30))
         # p = wx.Choice(self, -1, pos = (450, 30), choices=participants)
 
-        mainbox = wx.BoxSizer(wx.VERTICAL)
+        self.mainbox = wx.BoxSizer(wx.VERTICAL)
 
         # self.newBtn = wx.Button(self, wx.ID_ANY, label="new calendar", size=(100, 40), pos=(400, 0))
         # self.newBtn.Bind(wx.EVT_BUTTON, self.new_calendar)
@@ -473,20 +509,23 @@ class CalendarPanel(wx.Panel):
         self.partBtn = wx.Button(self, wx.ID_ANY, label="participants", size=(100, 40))
         self.partBtn.Bind(wx.EVT_BUTTON, self.display)
         btnBox.Add(self.partBtn, 1, wx.ALL, 5)
-        btnBox.AddSpacer(650)
+        self.invitationBtn = wx.Button(self, wx.ID_ANY, label="invitations", size=(100, 40))
+        self.invitationBtn.Bind(wx.EVT_BUTTON, self.show_invitations)
+        btnBox.Add(self.invitationBtn, 1, wx.ALL, 5)
+        btnBox.AddSpacer(540)
         newBtn = wx.Button(self, wx.ID_ANY, label="new calendar", size=(100, 40))
         newBtn.Bind(wx.EVT_BUTTON, self.new_calendar)
         btnBox.Add(newBtn, 0, wx.ALL, 5)
         self.myScrolled = ParticipantsPanel(self, self.frame,self.partBtn, participants)
 
 
-        mainbox.Add(btnBox)
+        self.mainbox.Add(btnBox)
 
-        mainbox.AddSpacer(20)
+        self.mainbox.AddSpacer(20)
         # mainbox.Add(self.partBtn,  0, wx.ALL, 5)
 
 
-        mainbox.Add(title, 0, wx.CENTER)
+        self.mainbox.Add(title, 0, wx.CENTER)
 
 
         calSizer =  wx.BoxSizer(wx.VERTICAL)
@@ -535,8 +574,8 @@ class CalendarPanel(wx.Panel):
 
         # txt = wx.StaticText(self, -1, "Calendar-1")
         # v_box.Add(txt)
-        mainbox.AddSpacer(20)
-        mainbox.Add(self.cal,0, wx.ALL | wx.CENTER,5)
+        self.mainbox.AddSpacer(20)
+        self.mainbox.Add(self.cal,0, wx.ALL | wx.CENTER,5)
 
 
 
@@ -545,12 +584,14 @@ class CalendarPanel(wx.Panel):
 
         #mainbox.Add(calSizer, 1, wx.EXPAND)
 
-
-        self.SetSizer(mainbox)
+        self.frame.SetStatusText("Red is the joined color")
+        self.SetSizer(self.mainbox)
         # arrange the screen
         # self.SetSizer(sizer)
         self.Layout()
         self.Hide()
+
+
 
     # def change_calendar(self, name, manager, participants):
     #     """
@@ -616,6 +657,8 @@ class CalendarPanel(wx.Panel):
 
     def new_calendar(self, evt):
         print("open add new calendar panel")
+        self.Hide()
+        self.parent.new_cal.Show()
 
     def left_cal(self, evt):
         print("scroll to left cal")
@@ -631,12 +674,24 @@ class CalendarPanel(wx.Panel):
 
     def add_calendar_participant(self, evt):
         print("try to add participant to calendar")
+        self.Hide()
+        self.parent.new_cal_parti.Show()
+
+    def show_invitations(self, evt):
+        print("show invitations")
+        self.frame.graphics_q.put(("invitations", ()))
 
     def mark_dates(self, dates):
-        print(f"mark {dates}")
+        print(f"mark in calendar {dates}")
         for i in dates:
             self.cal.SetAttr(i[0], wx.adv.CalendarDateAttr(colBack=i[1]))
-        self.Layout()
+        #self.SetSizer(self.mainbox)
+        #self.Layout()
+
+        #self.Hide()
+        #self.Show()
+
+        self.Refresh()
 
     def unmark_dates(self, dates):
         for i in dates:
@@ -862,10 +917,6 @@ class EventPanel(wx.Panel):
             mainbox.AddSpacer(200)
             mainbox.Add(words, 1, wx.CENTER)
 
-            self.SetSizer(mainbox)
-            self.Layout()
-            self.Hide()
-
         self.SetSizer(mainbox)
         self.Layout()
         self.Hide()
@@ -881,6 +932,7 @@ class EventPanel(wx.Panel):
 
     def go_back(self, evt):
         self.Hide()
+        self.frame.SetStatusText("Red is the joined color")
         self.parent.calendar.Show()
 
     def new_event(self, evt):
@@ -895,6 +947,326 @@ class EventPanel(wx.Panel):
     def change_time(self, evt):
         pass
 
+
+class newCalendarPanel(wx.Panel):
+    def __init__(self, parent, frame):
+        wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
+        self.frame = frame
+        self.parent = parent
+        self.SetBackgroundColour(wx.LIGHT_GREY)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        # title
+        title = wx.StaticText(self, -1, label="New calendar")
+        titlefont = wx.Font(40, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+        title.SetForegroundColour(wx.BLACK)
+        title.SetFont(titlefont)
+
+        smallfont = wx.Font(20, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+
+        # name
+        nameBox = wx.BoxSizer(wx.HORIZONTAL)
+        nameText = wx.StaticText(self, 1, label="Name of calendar: ")
+        nameText.SetFont(smallfont)
+        self.nameField = wx.TextCtrl(self, -1, name="name", size=(300, 50))
+        self.nameField.SetFont(smallfont)
+        nameBox.Add(nameText, 0, wx.ALL, 5)
+        nameBox.Add(self.nameField, 0, wx.ALL, 5)
+        # participants
+        partiBox = wx.BoxSizer(wx.HORIZONTAL)
+        partiText = wx.StaticText(self, 1, label="Participants to add: ")
+        partiText.SetFont(smallfont)
+        self.partiField = wx.TextCtrl(self, -1, name="participants", size=(300, 50))
+        self.partiField.SetFont(smallfont)
+        partiBox.Add(partiText, 0, wx.ALL, 5)
+        partiBox.Add(self.partiField, 0, wx.ALL, 5)
+
+        newC = wx.Image("pics\\done.png")
+        newC.Rescale(250, 100)
+        back = wx.Image("pics\\back.png")
+        back.Rescale(200, 80)
+        back = wx.Bitmap(back)
+        newC = wx.Bitmap(newC)
+        newBtn = wx.BitmapButton(self,
+                                 size=(200, 80), name="button", bitmap=newC)
+        newBtn.SetBackgroundColour(wx.LIGHT_GREY)
+        newBtn.SetWindowStyleFlag(wx.NO_BORDER)
+        backBtn = wx.BitmapButton(self,
+                                  size=(200, 80), name="button", bitmap=back)
+        backBtn.SetBackgroundColour(wx.LIGHT_GREY)
+        backBtn.SetWindowStyleFlag(wx.NO_BORDER)
+
+        btnBox = wx.BoxSizer(wx.HORIZONTAL)
+        backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
+        btnBox.Add(backBtn, 1, wx.ALL, 5)
+        btnBox.AddSpacer(40)
+        newBtn.Bind(wx.EVT_BUTTON, self.handle_new_calendar)
+        btnBox.Add(newBtn, 0, wx.ALL, 5)
+
+        # add all elements to sizer
+        sizer.AddSpacer(40)
+        sizer.Add(title, 0, wx.CENTER | wx.TOP, 5)
+        sizer.AddSpacer(60)
+        sizer.Add(nameBox, 0, wx.CENTER | wx.ALL, 5)
+        sizer.AddSpacer(20)
+        sizer.Add(partiBox, -1, wx.CENTER | wx.ALL, 5)
+        sizer.AddSpacer(30)
+        sizer.Add(btnBox, wx.CENTER | wx.ALL, 5)
+        self.frame.SetStatusText("participants names must be seperated with ' ,'")
+
+        # arrange the screen
+        self.SetSizer(sizer)
+        self.Layout()
+        self.Hide()
+
+    def handle_new_calendar(self, event):
+        name = self.nameField.GetValue()
+        participants = self.partiField.GetValue()
+        if not name or not participants:
+            self.frame.SetStatusText("Must enter name and participants")
+        else:
+            participants = participants.split(", ")
+            self.frame.graphics_q.put(("new cal", (name, participants)))
+
+    def handle_back(self, event):
+        self.frame.SetStatusText("")
+        self.Hide()
+        self.frame.SetStatusText("Red is the joined color")
+        self.parent.calendar.Show()
+
+
+class newCalendarParticipantPanel(wx.Panel):
+    def __init__(self, parent, frame, calendar_name="personal"):
+        wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
+        self.frame = frame
+        self.parent = parent
+        self.SetBackgroundColour(wx.LIGHT_GREY)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        # title
+        title_row = wx.BoxSizer(wx.HORIZONTAL)
+        title = wx.StaticText(self, -1, label=calendar_name)
+        title.SetForegroundColour(wx.BLACK)
+        titlefont = wx.Font(40, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+        title.SetForegroundColour(wx.BLACK)
+        title.SetFont(titlefont)
+        titleStart = wx.StaticText(self, -1, label="Add participants to ")
+        titleStart.SetForegroundColour(wx.BLACK)
+        titleStart.SetFont(titlefont)
+        title_row.Add(titleStart)
+        title_row.Add(title)
+        smallfont = wx.Font(20, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+
+        # participants
+        partiBox = wx.BoxSizer(wx.HORIZONTAL)
+        partiText = wx.StaticText(self, 1, label="Participants to add: ")
+        partiText.SetFont(smallfont)
+        self.partiField = wx.TextCtrl(self, -1, name="participants", size=(300, 50))
+        self.partiField.SetFont(smallfont)
+        partiBox.Add(partiText, 0, wx.ALL, 5)
+        partiBox.Add(self.partiField, 0, wx.ALL, 5)
+
+        newP = wx.Image("pics\\done.png")
+        newP.Rescale(250, 100)
+        back = wx.Image("pics\\back.png")
+        back.Rescale(200, 80)
+        back = wx.Bitmap(back)
+        newP = wx.Bitmap(newP)
+        newBtn = wx.BitmapButton(self,
+                                 size=(200, 80), name="button", bitmap=newP)
+        newBtn.SetBackgroundColour(wx.LIGHT_GREY)
+        newBtn.SetWindowStyleFlag(wx.NO_BORDER)
+        backBtn = wx.BitmapButton(self,
+                                  size=(200, 80), name="button", bitmap=back)
+        backBtn.SetBackgroundColour(wx.LIGHT_GREY)
+        backBtn.SetWindowStyleFlag(wx.NO_BORDER)
+
+        btnBox = wx.BoxSizer(wx.HORIZONTAL)
+        backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
+        btnBox.Add(backBtn, 1, wx.ALL, 5)
+        btnBox.AddSpacer(40)
+        newBtn.Bind(wx.EVT_BUTTON, self.handle_new_calendar_parti)
+        btnBox.Add(newBtn, 0, wx.ALL, 5)
+
+        # add all elements to sizer
+        sizer.AddSpacer(60)
+        sizer.Add(title_row, 0, wx.CENTER | wx.TOP, 5)
+        sizer.AddSpacer(100)
+        sizer.Add(partiBox, -1, wx.CENTER | wx.ALL, 5)
+        sizer.AddSpacer(50)
+        sizer.Add(btnBox, wx.CENTER | wx.ALL, 5)
+        self.frame.SetStatusText("participants names must be seperated with ' ,'")
+
+        # arrange the screen
+        self.SetSizer(sizer)
+        self.Layout()
+        self.Hide()
+
+    def handle_new_calendar_parti(self, event):
+        participants = self.partiField.GetValue()
+        if not participants :
+            self.frame.SetStatusText("Must enter participants")
+        else:
+            print(participants)
+            participants = participants.split(", ")
+            self.frame.graphics_q.put(("new cal parti", (participants)))
+
+    def handle_back(self, event):
+        self.frame.SetStatusText("")
+        self.Hide()
+        self.frame.SetStatusText("Red is the joined color")
+        self.parent.calendar.Show()
+
+
+class invitationsPanel(wx.Panel):
+    def __init__(self, parent, frame, name="test", participants=None, manager="1", date="&&&", start = "16:00", end="18:00"):
+        wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
+        self.frame = frame
+        self.parent = parent
+        self.SetBackgroundColour(wx.LIGHT_GREY)
+        self.events = []
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        btnBox = wx.BoxSizer(wx.HORIZONTAL)
+        self.backBtn = wx.Button(self, wx.ID_ANY, label="back", size=(100, 40))
+        self.backBtn.Bind(wx.EVT_BUTTON, self.go_back)
+        btnBox.Add(self.backBtn, 1, wx.ALL, 5)
+        btnBox.AddSpacer(650)
+        mainbox.Add(btnBox)
+        mainbox.AddSpacer(10)
+
+        if participants:
+            # title
+            title_row = wx.BoxSizer(wx.HORIZONTAL)
+            title = wx.StaticText(self, -1, label=name)
+            titlefont = wx.Font(45, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+            eventfont = wx.Font(25, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+            smallTitleFont = wx.Font(20, wx.DECORATIVE, wx.NORMAL, wx.BOLD)
+            title.SetForegroundColour(wx.BLACK)
+            title.SetFont(titlefont)
+            #arrrow button
+            left = wx.Image("pics\\left.png")
+            left.Rescale(100, 80)
+            right = wx.Image("pics\\right.png")
+            right.Rescale(100, 80)
+            left = wx.Bitmap(left)
+            right = wx.Bitmap(right)
+            # create button at point (20, 20)
+            self.leftBtn = wx.BitmapButton(self,
+                                size=(100, 80), pos=(100,50), name="button", bitmap=left)
+            self.leftBtn.SetBackgroundColour(wx.LIGHT_GREY)
+            self.leftBtn.SetWindowStyleFlag(wx.NO_BORDER)
+            self.rightBtn = wx.BitmapButton(self,
+                                           size=(100, 80), pos=(660, 50), name="button", bitmap=right)
+            self.rightBtn.SetBackgroundColour(wx.LIGHT_GREY)
+            self.rightBtn.SetWindowStyleFlag(wx.NO_BORDER)
+            self.leftBtn.Bind(wx.EVT_BUTTON, self.left_invitation)
+            self.rightBtn.Bind(wx.EVT_BUTTON, self.right_invitation)
+
+            # set bmp as bitmap for button
+            title_row.Add(self.leftBtn, 1, wx.ALL, 5)
+            title_row.AddSpacer(200)
+            title_row.Add(title, 1, wx.ALL, 5)
+            title_row.AddSpacer(200)
+            title_row.Add(self.rightBtn, 1, wx.ALL, 5)
+
+            if date != "&&&":
+                date_row = wx.BoxSizer(wx.HORIZONTAL)
+                date = wx.StaticText(self, -1, label=date)
+                date.SetForegroundColour(wx.BLACK)
+                date.SetFont(eventfont)
+                date_title = wx.StaticText(self, -1, label="Date:   ")
+                date_title.SetForegroundColour(wx.BLACK)
+                date_title.SetFont(smallTitleFont)
+                date_row.Add(date_title)
+                date_row.Add(date)
+
+                time_str = start + " - " + end
+                time_row = wx.BoxSizer(wx.HORIZONTAL)
+                time = wx.StaticText(self, -1, label=time_str)
+                time.SetForegroundColour(wx.BLACK)
+                time.SetFont(eventfont)
+                time_title = wx.StaticText(self, -1, label="Time:   ")
+                time_title.SetForegroundColour(wx.BLACK)
+                time_title.SetFont(smallTitleFont)
+                time_row.Add(time_title)
+                time_row.Add(time)
+
+            participants_str = ", ".join(participants)
+            participants_row = wx.BoxSizer(wx.HORIZONTAL)
+            parti = wx.StaticText(self, -1, label=participants_str)
+            parti.SetForegroundColour(wx.BLACK)
+            parti.SetFont(eventfont)
+            parti_title = wx.StaticText(self, -1, label="Participants:   ")
+            parti_title.SetForegroundColour(wx.BLACK)
+            parti_title.SetFont(smallTitleFont)
+            participants_row.Add(parti_title)
+            participants_row.Add(parti)
+
+            manager_row = wx.BoxSizer(wx.HORIZONTAL)
+            manager = wx.StaticText(self, -1, label=manager)
+            manager.SetForegroundColour(wx.BLACK)
+            manager.SetFont(eventfont)
+            manager_title = wx.StaticText(self, -1, label="Invited by:   ")
+            manager_title.SetForegroundColour(wx.BLACK)
+            manager_title.SetFont(smallTitleFont)
+            manager_row.Add(manager_title)
+            manager_row.Add(manager)
+
+            buttons = wx.BoxSizer(wx.HORIZONTAL)
+            acceptBtn = wx.Button(self, wx.ID_ANY, label="accept", size=(100, 40))
+            acceptBtn.Bind(wx.EVT_BUTTON, self.accept)
+            buttons.Add(acceptBtn, 0, wx.ALL, 5)
+            buttons.AddSpacer(30)
+            declineBtn = wx.Button(self, wx.ID_ANY, label="decline", size=(100, 40))
+            declineBtn.Bind(wx.EVT_BUTTON, self.decline)
+            buttons.Add(declineBtn, 0, wx.ALL, 5)
+
+            mainbox.AddSpacer(40)
+            mainbox.Add(title_row, 0, wx.CENTER)
+            mainbox.AddSpacer(40)
+            if date != "&&&":
+                mainbox.Add(date_row, 0, wx.CENTER)
+                mainbox.AddSpacer(20)
+                mainbox.Add(time_row, 0, wx.CENTER)
+                mainbox.AddSpacer(20)
+            mainbox.Add(participants_row, 0, wx.CENTER)
+            mainbox.AddSpacer(20)
+            mainbox.Add(manager_row, 0, wx.CENTER)
+            mainbox.AddSpacer(50)
+            mainbox.Add(buttons, 0, wx.CENTER)
+
+        else:
+            # title
+            print("hereeeee")
+            print(date)
+            mainbox.AddSpacer(200)
+            title = wx.StaticText(self, -1, label="There are no invitations")
+            titlefont = wx.Font(45, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+            title.SetForegroundColour(wx.BLACK)
+            title.SetFont(titlefont)
+            mainbox.Add(title, 0, wx.CENTER)
+
+        self.SetSizer(mainbox)
+        self.Layout()
+        self.Hide()
+
+
+    def left_invitation(self, evt):
+        print("scroll to left invitation")
+        self.frame.graphics_q.put(("left invitation", ()))
+
+    def right_invitation(self, evt):
+        print("scroll to right invitation")
+        self.frame.graphics_q.put(("right invitation", ()))
+
+    def go_back(self, evt):
+        self.Hide()
+        self.frame.SetStatusText("Red is the joined color")
+        self.parent.calendar.Show()
+
+    def accept(self, evt):
+        self.frame.graphics_q.put(("response", ("0")))
+
+    def decline(self, evt):
+        self.frame.graphics_q.put(("response", ("1")))
 
 
 if __name__ == '__main__':

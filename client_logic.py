@@ -16,6 +16,7 @@ class Params:
         self.day_events = [] # [participants, name, start, end, date, manager]
         self.current_month = []  # month and year
         self.invitations = []
+        self.current_invitation = 0
         self.current_calendar = []  # [id, participants, name, manager]
         self.current_event = 0
 
@@ -40,6 +41,7 @@ def handle_login(params):
         wx.CallAfter(pub.sendMessage, "hide", panel="login")
 
     return msg_to_send
+
 
 
 def login(username, password):
@@ -106,6 +108,7 @@ def handle_new_calendar(params):
     status, data_or_not_existing_participants = params
 
     if status == "0":
+        wx.CallAfter(pub.sendMessage, "hide", panel="new cal")
         calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
         participants = participants.split("*")
         global_params.current_calendar = [calendar_id, participants, name, manager]
@@ -119,6 +122,8 @@ def handle_new_calendar(params):
         print(f"new calendar {data_or_not_existing_participants}")
         wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=manager, participants=participants)
     else:
+        error = ", ".join(data_or_not_existing_participants.split("^")) + "do not exist"
+        call_error(error)
         print("couldnt open calendar because", ", ".join(data_or_not_existing_participants.split("^")), "do not exist")
 
 
@@ -130,6 +135,7 @@ def new_calendar(name, participants):
     :return:
     """
     if name == "personal" or "^" in name or "*" in name or "," in name or "$" in name:
+        call_error("name can't be 'personal' or contain '^', '*', '$', ','")
         print("name not valid")
     else:
         comm.send(protocol.pack_new_calendar(name, participants))
@@ -186,19 +192,23 @@ def handle_is_calendar_invitation_work(params):
     :param params: status
     :return:
     """
+    error = ""
     status = params[0]
     if status == "0":
         print("invitation succeed")
+        wx.CallAfter(pub.sendMessage, "hide", panel="new cal parti")
     elif status == "1":
-        print("couldnt add invitation because calendar do not exists")
+        error = "couldnt add invitation because calendar do not exists"
     elif status == "2":
-        print("couldnt add invitation because you are not the manager")
+        error = "couldnt add invitation because you are not the manager"
     elif status == "3":
-        print("couldnt add invitation because user do not exists")
+        error = "couldnt add invitation because user do not exists"
     elif status == "4":
-        print("couldnt add invitation because username already exists in calendar")
+        error = "couldnt add invitation because username already exists in calendar"
     elif status == "5":
-        print("couldnt add invitation because invitation already exists")
+        error = "couldnt add invitation because invitation already exists"
+    if status != "0":
+        call_error(error)
 
 
 def invite_to_calendar(username, calendar_id):
@@ -208,7 +218,10 @@ def invite_to_calendar(username, calendar_id):
     :param calendar_id:
     :return:
     """
-    comm.send(protocol.pack_calendar_invitation(calendar_id, username))
+    if global_params.current_calendar[2] == "personal":
+        call_error("can't invite to personal calendar")
+    else:
+        comm.send(protocol.pack_calendar_invitation(calendar_id, username))
 
 
 def handle_add_participant_to_calendar(params):
@@ -544,6 +557,7 @@ def handle_month_events(params):
     :return:
     """
     events = params[0].split("*")
+    month_events.clear()
     if len(events) > 0 and events[0] != "":
         for i in events:
             date, color = i.split("^")
@@ -567,20 +581,20 @@ def get_calendar_info(calendar_id):
 
 
 
-def handle_calendar_info(params):
-    """
-    show name, participants and month events on screen and save it on the dictionary
-    :param params:
-    :return:
-    """
-    name, participants, events = params[0].split("$")
-    participants = participants.split("*")
-    events = events.split("*")
-    if len(events) > 0 and events[0] != "":
-        for i in events:
-            date, color = i.split("^")
-            month_events[date] = color
-    print("got month events - show them on screennnnn")
+# def handle_calendar_info(params):
+#     """
+#     show name, participants and month events on screen and save it on the dictionary
+#     :param params:
+#     :return:
+#     """
+#     name, participants, events = params[0].split("$")
+#     participants = participants.split("*")
+#     events = events.split("*")
+#     if len(events) > 0 and events[0] != "":
+#         for i in events:
+#             date, color = i.split("^")
+#             month_events[date] = color
+#     print("got month events - show them on screennnnn")
 
 
 def get_invitations():
@@ -597,11 +611,21 @@ def handle_invitations(params):
     :param params: invitations
     :return:
     """
-    invitations = params[0].split("*")
-    for i in range(len(invitations)):
-        invitations[i] = invitations[i].split("^")
-    global_params.invitations = invitations
-    print("got invitations, show them on screen")
+    if params == [""]:
+        wx.CallAfter(pub.sendMessage, "show invitation", params=[])
+    else:
+        print("hiiiiiiiiiiiii")
+        print(params)
+        invitations = params[0].split("*")
+        print(invitations)
+        for i in range(len(invitations)):
+            invitations[i] = invitations[i].split("^")
+            invitations[i][2] = invitations[i][2].split("$")
+        global_params.invitations = invitations
+        wx.CallAfter(pub.sendMessage, "show invitation", params=invitations[0])
+        global_params.current_invitation = 0
+    print(f"got invitations, show them on screen")
+
 
 def handle_recv(msg_q):
     """
@@ -643,8 +667,9 @@ def handle_graphics(graphics_q):
             if len(global_params.user_calendars) == (current+1):
                 call_error("can't go more right")
             else:
-                get_calendar_info(global_params.user_calendars[current+1])
                 wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
+                get_calendar_info(global_params.user_calendars[current+1])
+
         elif opcode == "left":
             current = global_params.user_calendars.index(global_params.current_calendar[0])
             if current == 0:
@@ -679,7 +704,47 @@ def handle_graphics(graphics_q):
                 global_params.current_event = global_params.current_event + 1
                 wx.CallAfter(pub.sendMessage, "hide", panel="event")
                 wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
-
+        elif opcode == "invitations":
+            wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
+            get_invitations()
+        elif opcode == "left invitation":
+            if global_params.current_invitation == 0:
+                call_error("can't go more left")
+            else:
+                global_params.current_invitation = global_params.current_invitation - 1
+                wx.CallAfter(pub.sendMessage, "hide", panel="invitation")
+                wx.CallAfter(pub.sendMessage, "show invitation", params=global_params.invitations[global_params.current_invitation])
+        elif opcode == "right invitation":
+            if (global_params.current_invitation + 1) == len(global_params.invitations):
+                call_error("can't go more right")
+            else:
+                global_params.current_invitation = global_params.current_invitation + 1
+                wx.CallAfter(pub.sendMessage, "hide", panel="invitation")
+                wx.CallAfter(pub.sendMessage, "show invitation", params=global_params.invitations[global_params.current_invitation])
+        elif opcode == "response":
+            wx.CallAfter(pub.sendMessage, "hide", panel="invitation")
+            if len(global_params.invitations[global_params.current_invitation]) > 5:
+                response_event_invitation(params[0], global_params.invitations[global_params.current_invitation][-1])
+            else:
+                response_to_calendar_invitation(params[0], global_params.invitations[global_params.current_invitation][-1])
+            global_params.invitations.remove(global_params.invitations[global_params.current_invitation])
+            print("edrftghyj")
+            print(global_params.invitations)
+            print(global_params.current_invitation)
+            if len(global_params.invitations) != 0:
+                if not (params[0] == "0" and len(global_params.invitations[global_params.current_invitation]) < 5):
+                    if len(global_params.invitations) == global_params.current_invitation - 1:
+                        global_params.current_invitation = 0
+                    wx.CallAfter(pub.sendMessage, "show invitation", params=global_params.invitations[global_params.current_invitation])
+            else:
+                wx.CallAfter(pub.sendMessage, "show invitation", params=[])
+        elif opcode == "new cal parti":
+            for i in params:
+                invite_to_calendar(i, global_params.current_calendar[0])
+            wx.CallAfter(pub.sendMessage, "hide", panel="add parti")
+        elif opcode == "new cal":
+            name, users = params
+            new_calendar(name, users)
 
         else:
             print(f'command {opcode} not valid')

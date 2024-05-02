@@ -94,11 +94,17 @@ def pack_invitations(invitations):
     :param invitations:
     :return:
     """
+    print(invitations)
     if not invitations:
-        invitations = []
-    invitations = ["^".join(x) for x in list(invitations)]
+        day_events = []
+    for i in invitations:
+        i[2] = "$".join(i[2])
+
+    invitations = ["^".join(x) for x in invitations]
     invitations = "*".join(invitations)
+    print(f"hello {invitations}")
     return f"14{invitations}"
+
 
 def pack_is_calendar_invitation_work(status):
     """
