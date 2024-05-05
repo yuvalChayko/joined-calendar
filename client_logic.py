@@ -13,7 +13,7 @@ class Params:
     def __init__(self):
         self.user_calendars = []
         self.current_day = []  # full date
-        self.day_events = [] # [participants, name, start, end, date, manager]
+        self.day_events = []
         self.current_month = []  # month and year
         self.invitations = []
         self.current_invitation = 0
@@ -152,10 +152,15 @@ def handle_new_event(params):
         if id_or_not_existing_participants != "":
             id_or_not_existing_participants = id_or_not_existing_participants.split("^")
             print("couldnt open event because", ", ".join(id_or_not_existing_participants), "do not exist in calendar")
+            error = ", ".join(id_or_not_existing_participants.split("^")) + "do not exist"
+            call_error(error)
         else:
+            call_error("time isn't available")
             print("time isnt available")
     else:
         print("succeed - return to calendar screen")
+        wx.CallAfter(pub.sendMessage, "hide", panel="new event")
+
 
 
 def new_event(calendar_id, name, participants, start, end, date):
@@ -163,10 +168,26 @@ def new_event(calendar_id, name, participants, start, end, date):
     send new eveent
     :return:
     """
+    flag = True
     if "^" in name or "*" in name or "," in name or "$" in name:
+        call_error("name can't contain '^', '*', '$', ','")
         print("name not valid")
     else:
-        comm.send(protocol.pack_new_event(calendar_id, name, start, end, date, participants))
+
+        time_format = "%H:%M"
+        try:
+            time.strptime(start, time_format)
+            time.strptime(end, time_format)
+        except:
+            flag = False
+
+        if flag:
+            flag = len(start) == 5 and len(end) == 5 and (int(start[:2]) < int(end[:2]) or (int(start[:2]) == int(end[:2]) and int(start[3:]) < int(end[3:])))
+
+        if not flag:
+            call_error("time not valid")
+        else:
+            comm.send(protocol.pack_new_event(calendar_id, name, start, end, date, participants))
 
 
 def handle_event_info(params):
@@ -252,6 +273,7 @@ def handle_there_is_an_invitation(params):
     :param params:
     :return:
     """
+    wx.CallAfter(pub.sendMessage, "new invitation")
     print("there is an invitation")
 
 
@@ -272,21 +294,25 @@ def handle_is_event_invitation_work(params):
     :param params: status
     :return:
     """
+    error = ""
     status = params[0]
     if status == "0":
         print("invitation succeed")
+        wx.CallAfter(pub.sendMessage, "hide", panel="new evt parti")
     elif status == "1":
-        print("couldnt add invitation because calendar do not exists")
+        error = "couldnt add invitation because calendar do not exists"
     elif status == "2":
-        print("couldnt add invitation because you are not the manager")
+        error = "couldnt add invitation because you are not the manager"
     elif status == "3":
-        print("couldnt add invitation because user do not exists")
+        error = "couldnt add invitation because user do not exists"
     elif status == "4":
-        print("couldnt add invitation because username do not exists in calendar")
+        error = "couldnt add invitation because username do not exists in calendar"
     elif status == "5":
-        print("couldnt add invitation because invitation already exists")
+        error = "couldnt add invitation because invitation already exists"
     elif status == "6":
-        print("couldnt add invitation because username already exists in event")
+        error = "couldnt add invitation because username already exists in event"
+    if status != '0':
+        call_error(error)
 
 
 def response_event_invitation(status, event_id):
@@ -741,11 +767,14 @@ def handle_graphics(graphics_q):
         elif opcode == "new cal parti":
             for i in params:
                 invite_to_calendar(i, global_params.current_calendar[0])
-            wx.CallAfter(pub.sendMessage, "hide", panel="add parti")
         elif opcode == "new cal":
             name, users = params
             new_calendar(name, users)
-
+        elif opcode == "new evt parti":
+            for i in params:
+                invite_to_event(i, global_params.current_calendar[0], global_params.day_events[global_params.current_event][-1])
+        elif opcode == "new event":
+            new_event(global_params.current_calendar[0], params[0], params[1], params[2], params[3], params[4])
         else:
             print(f'command {opcode} not valid')
 

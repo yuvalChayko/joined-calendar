@@ -824,6 +824,7 @@ class joined_calendar_db:
             day_events = []
             for id in day_ids:
                 day_events += [self.get_event_info(id, username, calendar_id)]
+                day_events[-1][-1] = str(day_events[-1][-1])
         print(f"day events {day_events}")
         return day_events
 
@@ -891,6 +892,7 @@ class joined_calendar_db:
         event_ids = [i[0] for i in event_ids]
         for id in event_ids:
             temp = self.get_some_event_info(id, calendar_id)
+            print("hereeeeee", temp)
             if len(temp) != 0:
                 if len(day_color) == 0:
                     day_color = temp
@@ -900,6 +902,7 @@ class joined_calendar_db:
                     if temp[1] != day_color[1]:
                         day_color[1] = 'RED'
                         break
+        print("day color", day_color)
         return day_color
 
     def get_event_date(self, event_id):
@@ -928,9 +931,9 @@ class joined_calendar_db:
         if self._is_event_exists(event_id):
             participants = list(set(self.get_event_participants(event_id)) & set(self.get_calendar_participants(calendar_id)))
             if username in participants:
-                sql = "SELECT name, start_hour, end_hour, date, manager FROM " + self.event_info + " WHERE event_id = ?"
+                sql = "SELECT name, start_hour, end_hour, date, manager, event_id FROM " + self.event_info + " WHERE event_id = ?"
             else:
-                sql = "SELECT start_hour, end_hour, date FROM " + self.event_info + " WHERE event_id = ?"
+                sql = "SELECT start_hour, end_hour, date, event_id FROM " + self.event_info + " WHERE event_id = ?"
             self.db_cursor.execute(sql, (event_id,))
             info = self.db_cursor.fetchone()
 
