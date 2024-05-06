@@ -590,7 +590,7 @@ class joined_calendar_db:
                     status = 3
                 for x in events:
                     sql = ["DELETE FROM " + self.events_participants + " WHERE event_id = ? AND participant = ?",
-                           "DELETE FROM " + self.reminders + " WHERE event_id = ? AND participant = ?"]
+                           "DELETE FROM " + self.reminders + " WHERE event_id = ? AND username = ?"]
                     [self.db_cursor.execute(s, (x, username,)) for s in sql]
                     self.db_conn.commit()
                     sql = "DELETE FROM " + self.event_invitations + " WHERE event_id = ?"

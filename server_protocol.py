@@ -34,6 +34,7 @@ def pack_new_calendar(status, data_or_not_existing_participants):
     """
     if status == "0" or status == "9":
         data_or_not_existing_participants[3] = "*".join(data_or_not_existing_participants[3])
+    print("pack new calendar", data_or_not_existing_participants)
     data_or_not_existing_participants = "^".join(data_or_not_existing_participants)
 
     return f"02{status},{data_or_not_existing_participants}"

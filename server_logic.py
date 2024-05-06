@@ -401,19 +401,19 @@ def handle_exit_calendar(ip, params):
         if status == 3:
             comm.send(ip, protocol.pack_delete_calendar("0", calendar_id))
             personal_id = db.get_personal_calendar(username)
-            info = [personal_id, "personal", username, [username]]
-            comm.send(ip, protocol.pack_new_calendar("0", info))
-            today = datetime.now()
-            current_open_calendars[username] = [personal_id, str(today.month).zfill(2) + "." + str(today.year)]  # user: [calendar_id, month and year]
+            # info = [personal_id, "personal", username, [username]]
+            # comm.send(ip, protocol.pack_new_calendar("9", info))
+            # today = datetime.now()
+            # current_open_calendars[username] = [personal_id, str(today.month).zfill(2) + "." + str(today.year)]  # user: [calendar_id, month and year]
 
-            comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
+            # comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
             for user in current_users:
-                if current_open_calendars[user][0] == calendar_id:
+                if current_open_calendars[user][0] == calendar_id and user != username:
                     comm.send(current_users[user], protocol.pack_exit_calendar(calendar_id, username))
                     comm.send(current_users[user], protocol.pack_month_events(
                         db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
                                                   current_open_calendars[user][1][3:])))
-                else:
+                elif user != username:
                     # p = set(db.get_calendar_participants(calendar_id))
                     # both = list(p & set(participants))
                     # if len(both) > 0:
@@ -421,37 +421,38 @@ def handle_exit_calendar(ip, params):
 
         elif status == 2:
             comm.send(ip, protocol.pack_delete_calendar("0", calendar_id))
-            today = datetime.now()
-            personal_id = db.get_personal_calendar(username)
-            info = [personal_id, "personal", username, [username]]
-            comm.send(ip, protocol.pack_new_calendar("0", info))
-            today = datetime.now()
-            current_open_calendars[username] = [personal_id, str(today.month).zfill(2) + "." + str(today.year)]  # user: [calendar_id, month and year]
-            comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
+            # today = datetime.now()
+            # personal_id = db.get_personal_calendar(username)
+            # info = [str(personal_id), "personal", username, [username]]
+            # comm.send(ip, protocol.pack_new_calendar("9", info))
+            # today = datetime.now()
+            # current_open_calendars[username] = [personal_id, str(today.month).zfill(2) + "." + str(today.year)]  # user: [calendar_id, month and year]
+            # comm.send(ip, protocol.pack_month_events(db.get_events_of_calendar(personal_id, today.month, today.year)))
             for user in current_users:
-                if current_open_calendars[user][0] == calendar_id:
+                if current_open_calendars[user][0] == calendar_id and user != username:
                     comm.send(current_users[user], protocol.pack_exit_calendar(calendar_id, username))
                     comm.send(current_users[user], protocol.pack_month_events(
                         db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
                                                   current_open_calendars[user][1][3:])))
-                else:
+                elif user != username:
                     if username in db.get_calendar_participants(current_open_calendars[user][0]):
                         comm.send(current_users[user], protocol.pack_month_events(
                             db.get_events_of_calendar(current_open_calendars[user][0], current_open_calendars[user][1][:2],
                                                       current_open_calendars[user][1][3:])))
         else:
+            comm.send(ip, protocol.pack_delete_calendar("0", calendar_id))
             today = datetime.now()
             for user in current_users:
-                if user in participants:
+                if user in participants and user != username:
                     comm.send(current_users[user], protocol.pack_delete_calendar("0", calendar_id))
-                    if current_open_calendars[user][0] == calendar_id:
-                        personal_id = db.get_personal_calendar(user)
-                        info = [personal_id, "personal", user, [user]]
-                        comm.send(current_users[user], protocol.pack_new_calendar("0", info))
-                        today = datetime.now()
-                        current_open_calendars[user] = [personal_id, str(today.month).zfill(2) + "." + str(today.year)]  # user: [calendar_id, month and year]
-                        comm.send(current_users[user], protocol.pack_month_events(
-                            db.get_events_of_calendar(personal_id, today.month, today.year)))
+                    # if current_open_calendars[user][0] == calendar_id:
+                    #     personal_id = db.get_personal_calendar(user)
+                    #     info = [str(personal_id), "personal", user, [user]]
+                    #     comm.send(current_users[user], protocol.pack_new_calendar("9", info))
+                    #     today = datetime.now()
+                    #     current_open_calendars[user] = [personal_id, str(today.month).zfill(2) + "." + str(today.year)]  # user: [calendar_id, month and year]
+                    #     comm.send(current_users[user], protocol.pack_month_events(
+                    #         db.get_events_of_calendar(personal_id, today.month, today.year)))
                 else:
                     # participants = set(participants)
                     # p = set(db.get_calendar_participants(calendar_id))

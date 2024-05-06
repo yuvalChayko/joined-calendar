@@ -670,6 +670,7 @@ class CalendarPanel(wx.Panel):
             day = str(cal.GetDate())[8:10]
             day = day.replace(" ", "0")
             self.frame.graphics_q.put(("day", (day+"."+month_num+"."+year)))
+            self.Hide()
 
 
 
@@ -723,6 +724,8 @@ class CalendarPanel(wx.Panel):
 
     def exit_calendar(self, evt):
         print("exit calendar")
+        self.frame.graphics_q.put(("exit cal", ()))
+
 
     def mark_dates(self, dates):
         print(f"mark in calendar {dates}")
@@ -991,7 +994,7 @@ class EventPanel(wx.Panel):
 
 
     def del_event(self, evt):
-        pass
+        self.frame.graphics_q.put(("del evt", ()))
 
     def change_name(self, evt):
         pass
@@ -1520,6 +1523,7 @@ class newEventPanel(wx.Panel):
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.event.Show()
+
 
 
 if __name__ == '__main__':

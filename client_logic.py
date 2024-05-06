@@ -447,13 +447,27 @@ def handle_delete_event(params):
     :param params: status, event_id
     :return:
     """
+    error = ""
     status, event_id = params
     if status == "0":
         print("succeed")
+        global_params.day_events.remove(global_params.day_events[global_params.current_event])
+        wx.CallAfter(pub.sendMessage, "hide", panel="event")
+        if len(global_params.day_events) == 0:
+            wx.CallAfter(pub.sendMessage, "show day", event=global_params.current_day)
+        elif global_params.current_event == len(global_params.day_events):
+            global_params.current_event = global_params.current_event - 1
+            wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
+        else:
+            global_params.current_event = global_params.current_event
+            wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
     elif status == "1":
-        print("cant delete event because you are not the manager")
+        error = "cant delete event because you are not the manager"
     else:
-        print("cant delete event because event do not exist")
+        error = "cant delete event because event do not exist"
+
+    if status != "0":
+        call_error(error)
 
 
 def exit_calendar(calendar_id):
@@ -463,7 +477,7 @@ def exit_calendar(calendar_id):
     :return:
     """
     if global_params.current_calendar[2] == "personal":
-        print("cant delete calendar because its a personal one")
+        call_error("cant delete calendar because its a personal one")
     else:
         comm.send(protocol.pack_exit_calendar(calendar_id))
 
@@ -490,10 +504,18 @@ def handle_delete_calendar(params):
     if status == "0":
         if global_params.current_calendar[0] == calendar_id:
             print("delete current calendar")
+            print(global_params.user_calendars)
+            if global_params.user_calendars.index(calendar_id) == (len(global_params.user_calendars)-1):
+                get_calendar_info(global_params.user_calendars[-2])
+
+
+            else:
+                get_calendar_info(global_params.user_calendars[global_params.user_calendars.index(calendar_id)+1])
+            wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
 
         global_params.user_calendars.remove(calendar_id)
     else:
-        print("couldnt delete calendar")
+        call_error("couldnt delete calendar, please try again")
 
 
 def get_calendar_ids():
@@ -687,9 +709,7 @@ def handle_graphics(graphics_q):
             login(username, password)
         elif opcode == "right":
             current = global_params.user_calendars.index(global_params.current_calendar[0])
-            print(len(global_params.user_calendars))
-            print(current+1)
-            print(global_params.user_calendars)
+            print("right calendar", current, len(global_params.user_calendars), global_params.user_calendars)
             if len(global_params.user_calendars) == (current+1):
                 call_error("can't go more right")
             else:
@@ -698,6 +718,7 @@ def handle_graphics(graphics_q):
 
         elif opcode == "left":
             current = global_params.user_calendars.index(global_params.current_calendar[0])
+            print("left calendar", current, len(global_params.user_calendars), global_params.user_calendars)
             if current == 0:
                 call_error("can't go more left")
             else:
@@ -714,7 +735,7 @@ def handle_graphics(graphics_q):
             get_month_events(global_params.current_calendar[0], month, year)
         elif opcode == "day":
             date = params
-            wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
+            # wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
             get_day_events(global_params.current_calendar[0], date)
         elif opcode == "left event":
             if global_params.current_event == 0:
@@ -754,9 +775,7 @@ def handle_graphics(graphics_q):
             else:
                 response_to_calendar_invitation(params[0], global_params.invitations[global_params.current_invitation][-1])
             global_params.invitations.remove(global_params.invitations[global_params.current_invitation])
-            print("edrftghyj")
-            print(global_params.invitations)
-            print(global_params.current_invitation)
+
             if len(global_params.invitations) != 0:
                 if not (params[0] == "0" and len(global_params.invitations[global_params.current_invitation]) < 5):
                     if len(global_params.invitations) == global_params.current_invitation - 1:
@@ -775,6 +794,10 @@ def handle_graphics(graphics_q):
                 invite_to_event(i, global_params.current_calendar[0], global_params.day_events[global_params.current_event][-1])
         elif opcode == "new event":
             new_event(global_params.current_calendar[0], params[0], params[1], params[2], params[3], params[4])
+        elif opcode == "del evt":
+            delete_event(global_params.day_events[global_params.current_event][-1])
+        elif opcode == "exit cal":
+            exit_calendar(global_params.current_calendar[0])
         else:
             print(f'command {opcode} not valid')
 
