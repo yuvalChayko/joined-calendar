@@ -295,6 +295,21 @@ class joined_calendar_db:
         participants = [i[0] for i in participants]
         return participants
 
+    def get_calendar_participants_plus_colors(self, id):
+        """
+        return calendar participants with their colors
+        :param id:
+        :return: list
+        """
+        sql = "SELECT participant FROM " + self.calendars_participants + " WHERE calendar_id = ?"
+        self.db_cursor.execute(sql, (id,))
+        participants = self.db_cursor.fetchall()
+        participants = [i[0] for i in participants]
+        p = []
+        for i in participants:
+            p.append([i, self.get_color(i, id)])
+        return p
+
     def is_participants_in_calendar(self, participants, id):
         """
         check if the usernames in the list are participants in the calendar
@@ -418,6 +433,7 @@ class joined_calendar_db:
         :param user:
         :return:
         """
+        print(id)
         sql = "SELECT manager FROM " + self.event_info + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (id,))
         manager = self.db_cursor.fetchone()[0]
@@ -859,6 +875,22 @@ class joined_calendar_db:
         if self._is_calendar_exists(calendar_id):
 
             participants = self.get_calendar_participants(calendar_id)
+            sql = "SELECT name, manager FROM " + self.calendars + " WHERE calendar_id = ?"
+            self.db_cursor.execute(sql, (calendar_id,))
+            name, manager = self.db_cursor.fetchone()
+
+            info = [name, manager, participants]
+        return info
+
+    def get_calendar_info_with_colors(self, calendar_id):
+        """
+        return name, manager and participants with colors
+        :param calendar_id:
+        :return:
+        """
+        info = []
+        if self._is_calendar_exists(calendar_id):
+            participants = self.get_calendar_participants_plus_colors(calendar_id)
             sql = "SELECT name, manager FROM " + self.calendars + " WHERE calendar_id = ?"
             self.db_cursor.execute(sql, (calendar_id,))
             name, manager = self.db_cursor.fetchone()

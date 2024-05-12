@@ -33,6 +33,8 @@ def pack_new_calendar(status, data_or_not_existing_participants):
     :return:
     """
     if status == "0" or status == "9":
+        for i in range(len(data_or_not_existing_participants[3])):
+            data_or_not_existing_participants[3][i] = "$".join(data_or_not_existing_participants[3][i])
         data_or_not_existing_participants[3] = "*".join(data_or_not_existing_participants[3])
     print("pack new calendar", data_or_not_existing_participants)
     data_or_not_existing_participants = "^".join(data_or_not_existing_participants)

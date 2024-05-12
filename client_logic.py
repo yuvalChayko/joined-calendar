@@ -111,6 +111,8 @@ def handle_new_calendar(params):
         wx.CallAfter(pub.sendMessage, "hide", panel="new cal")
         calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
         participants = participants.split("*")
+        for i in range(len(participants)):
+            participants[i] = participants[i].split("$")
         global_params.current_calendar = [calendar_id, participants, name, manager]
         global_params.user_calendars.append(calendar_id)
         print(f"new calendar {data_or_not_existing_participants}")
@@ -118,8 +120,12 @@ def handle_new_calendar(params):
     elif status == "9":
         calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
         participants = participants.split("*")
+        print(participants)
+        for i in range(len(participants)):
+            participants[i] = participants[i].split("$")
         global_params.current_calendar = [calendar_id, participants, name, manager]
         print(f"new calendar {data_or_not_existing_participants}")
+        print(calendar_id, name, manager, participants)
         wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=manager, participants=participants)
     else:
         error = ", ".join(data_or_not_existing_participants.split("^")) + "do not exist"
@@ -151,9 +157,7 @@ def handle_new_event(params):
     if status == "1":
         if id_or_not_existing_participants != "":
             id_or_not_existing_participants = id_or_not_existing_participants.split("^")
-            print("couldnt open event because", ", ".join(id_or_not_existing_participants), "do not exist in calendar")
-            error = ", ".join(id_or_not_existing_participants.split("^")) + "do not exist"
-            call_error(error)
+            call_error(", ".join(id_or_not_existing_participants) + " do not exist")
         else:
             call_error("time isn't available")
             print("time isnt available")
@@ -165,7 +169,7 @@ def handle_new_event(params):
 
 def new_event(calendar_id, name, participants, start, end, date):
     """
-    send new eveent
+    send new event
     :return:
     """
     flag = True
@@ -200,11 +204,17 @@ def handle_event_info(params):
     if date in month_events.keys():
         del month_events[date]
         print("remove events dot from screen")
+
     if color:
         month = date[3: 5]
         if month == global_params.current_month:
             month_events[date] = color
             print("add events dot to screen")
+    if color:
+        wx.CallAfter(pub.sendMessage, "mark", dates=[[int(date[:2]), color]])
+    else:
+        wx.CallAfter(pub.sendMessage, "unmark", dates=[int(date[:2])])
+
 
 
 def handle_is_calendar_invitation_work(params):
@@ -332,8 +342,12 @@ def change_name_of_calendar(name, calendar_id):
     :param calendar_id:
     :return:
     """
+    print(name, calendar_id)
     if name == "personal" or "^" in name or "*" in name or "," in name or "$" in name:
         print("name not valid")
+        call_error("name can't be 'personal' or contain '^', '*', '$', ','")
+    elif global_params.current_calendar[2] == "personal":
+        call_error("can't change name of personal calendar")
     else:
         comm.send(protocol.pack_calendar_name_edit(calendar_id, name))
 
@@ -347,10 +361,17 @@ def handle_calendar_name_change(params):
     status, calendar_id, name = params
     if status == "0":
         if global_params.current_calendar[0] == calendar_id:
+            wx.CallAfter(pub.sendMessage, "hide", panel="cal name")
             global_params.current_calendar[2] = name
+            wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=global_params.current_calendar[3], participants=global_params.current_calendar[1])
+            dates = []
+            for i in month_events.keys():
+                dates += [[int(i[:2]), month_events[i]]]
+            print(dates)
+            wx.CallAfter(pub.sendMessage, "mark", dates=dates)
             print("there is a new name for the calendar")
     else:
-        print("couldnt change name of calendar because you are not the manager")
+        call_error("couldnt change name of calendar because you are not the manager")
 
 
 def change_name_of_event(name, event_id):
@@ -361,6 +382,7 @@ def change_name_of_event(name, event_id):
     :return:
     """
     if "^" in name or "*" in name or "," in name or "$" in name:
+        call_error("name can't contain '^', '*', '$', ','")
         print("name not valid")
     else:
         comm.send(protocol.pack_event_name_edit(event_id, name))
@@ -373,12 +395,18 @@ def handle_event_name_change(params):
     :return:
     """
     status, event_id, name = params
+    print(event_id, "event")
+    print(global_params.day_events)
     if status == '0':
-        current_event = [i for i in range(len(global_params.day_events)) if global_params.day_events[i][0] == event_id][0]
-        global_params.day_events[current_event][2] = name
+        print("day", global_params.day_events)
+        current_event = [i for i in range(len(global_params.day_events)) if global_params.day_events[i][-1] == str(event_id)][-1]
+        print(current_event)
+        global_params.day_events[current_event][1] = name
+        wx.CallAfter(pub.sendMessage, "hide", panel="evt name")
+        wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
         print("name of event changed successfully")
     else:
-        print("you are not the manager so couldnt change name of event")
+        call_error("you are not the manager so couldnt change name of event")
 
 
 def change_time(event_id, start, end, date):
@@ -405,6 +433,7 @@ def change_time(event_id, start, end, date):
     if flag:
         comm.send(protocol.pack_event_time_edit(event_id, start, end, date))
     else:
+        call_error("not valid input")
         print("not valid time")
 
 
@@ -417,19 +446,21 @@ def handle_time_change(params):
     status, calendar_id, event_id, time_or_participants = params
     if status == "1":
         participants = time_or_participants.split("^")
-        print(f"couldnt change time because {', '.join(participants)} are not free at this time")
+        call_error(f"couldnt change time because {', '.join(participants)} are not free at this time")
     elif status == "0":
         start, end, date = time_or_participants.split("^")
         for i in range(len(global_params.day_events)):
-            if global_params.day_events[i] == event_id:
-                global_params.day_events[i][1] = date
-                global_params.day_events[i][3] = start
-                global_params.day_events[i][4] = end
+            if global_params.day_events[i][-1] == event_id:
+                global_params.day_events[i][4] = date
+                global_params.day_events[i][2] = start
+                global_params.day_events[i][3] = end
+                wx.CallAfter(pub.sendMessage, "hide", panel="evt time")
+                wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
         print("time change succeed")
     elif status == "2":
-        print("couldnt change time because you are not the manager")
+        call_error("couldnt change time because you are not the manager")
     else:
-        print("event do not exist so cant change its time")
+        call_error("event do not exist so cant change its time")
 
 
 def delete_event(event_id):
@@ -798,6 +829,13 @@ def handle_graphics(graphics_q):
             delete_event(global_params.day_events[global_params.current_event][-1])
         elif opcode == "exit cal":
             exit_calendar(global_params.current_calendar[0])
+        elif opcode == "cal name":
+            change_name_of_calendar(params, global_params.current_calendar[0])
+        elif opcode == "evt name":
+            print("nameeeeeeee", global_params.day_events[global_params.current_event], params)
+            change_name_of_event(params, global_params.day_events[global_params.current_event][-1])
+        elif opcode == "evt time":
+            change_time(global_params.day_events[global_params.current_event][-1], params[1], params[2], params[0])
         else:
             print(f'command {opcode} not valid')
 
@@ -806,7 +844,7 @@ def handle_graphics(graphics_q):
 if __name__ == '__main__':
     msg_q = queue.Queue()
     graphics_q = queue.Queue()
-    comm = ClientComm('127.0.0.1', 4500, msg_q)
+    comm = ClientComm('192.168.4.92', 4500, msg_q)
     opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
                "05": handle_event_info, "10": handle_there_is_an_invitation, "11": handle_add_participant_to_calendar,
                "13": handle_is_event_invitation_work, "14": handle_invitations, "15": handle_is_calendar_invitation_work,

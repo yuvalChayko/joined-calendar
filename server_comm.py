@@ -32,9 +32,6 @@ class ServerComm:
                 if current_socket is self.socket:
                     client, addr = self.socket.accept()
                     print(f'{addr[0]} connected!')
-                    if addr[0] == "127.0.0.1":
-                        addr = (("127.0.0." + str(self.count), addr[1]))
-                        self.count += 1
 
                     threading.Thread(target=self._set_key(client, addr[0]))
 
