@@ -194,8 +194,10 @@ class MainPanel(wx.Panel):
         print(f"here {event}")
         self.v_box.Detach(self.event)
         self.event.events = event # [id, date, name, start, end, manager, [participants]]
-        if type(event) is list:
+        if type(event) is list and len(event) == 7:
             self.event = EventPanel(self, self.frame, event[1], event[0], event[-2], event[-3], event[2], event[3])
+        elif type(event) is list and len(event) == 5:
+            self.event = EventPanel(self, self.frame, participants=event[0], start=event[1], end=event[2], date=event[3])
         else:
             self.event = EventPanel(self, self.frame, date=event)
 
@@ -845,7 +847,7 @@ class ParticipantsPanel(wx.Panel):
 
 
 class EventPanel(wx.Panel):
-    def __init__(self, parent, frame, name="test", participants=None, manager="1", date="01.01.2024", start = "16:00", end="18:00"):
+    def __init__(self, parent, frame, name="&&&", participants=None, manager="$$$", date="01.01.2024", start = "16:00", end="18:00"):
         wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
         self.frame = frame
         self.parent = parent
@@ -866,7 +868,7 @@ class EventPanel(wx.Panel):
         if participants:
             title_row = wx.BoxSizer(wx.HORIZONTAL)
             # title
-            title = wx.StaticText(self, -1, label=name)
+            title = wx.StaticText(self, -1, label=date)
             titlefont = wx.Font(45, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
             eventfont = wx.Font(25, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
             smallTitleFont = wx.Font(20, wx.DECORATIVE, wx.NORMAL, wx.BOLD)
@@ -898,16 +900,25 @@ class EventPanel(wx.Panel):
             title_row.AddSpacer(200)
             title_row.Add(self.rightBtn, 1, wx.ALL, 5)
 
-
-            date_row = wx.BoxSizer(wx.HORIZONTAL)
-            date = wx.StaticText(self, -1, label=date)
-            date.SetForegroundColour(wx.BLACK)
-            date.SetFont(eventfont)
-            date_title = wx.StaticText(self, -1, label="Date:   ")
-            date_title.SetForegroundColour(wx.BLACK)
-            date_title.SetFont(smallTitleFont)
-            date_row.Add(date_title)
-            date_row.Add(date)
+            if manager != "&&&" and name != "&&&":
+                manager_row = wx.BoxSizer(wx.HORIZONTAL)
+                manager = wx.StaticText(self, -1, label=manager)
+                manager.SetForegroundColour(wx.BLACK)
+                manager.SetFont(eventfont)
+                manager_title = wx.StaticText(self, -1, label="Manager:   ")
+                manager_title.SetForegroundColour(wx.BLACK)
+                manager_title.SetFont(smallTitleFont)
+                manager_row.Add(manager_title)
+                manager_row.Add(manager)
+                name_row = wx.BoxSizer(wx.HORIZONTAL)
+                name = wx.StaticText(self, -1, label=name)
+                name.SetForegroundColour(wx.BLACK)
+                name.SetFont(eventfont)
+                name_title = wx.StaticText(self, -1, label="Name:   ")
+                name_title.SetForegroundColour(wx.BLACK)
+                name_title.SetFont(smallTitleFont)
+                name_row.Add(name_title)
+                name_row.Add(name)
             participants_str = ", ".join(participants)
             participants_row = wx.BoxSizer(wx.HORIZONTAL)
             parti = wx.StaticText(self, -1, label=participants_str)
@@ -928,15 +939,6 @@ class EventPanel(wx.Panel):
             time_title.SetFont(smallTitleFont)
             time_row.Add(time_title)
             time_row.Add(time)
-            manager_row = wx.BoxSizer(wx.HORIZONTAL)
-            manager = wx.StaticText(self, -1, label=manager)
-            manager.SetForegroundColour(wx.BLACK)
-            manager.SetFont(eventfont)
-            manager_title = wx.StaticText(self, -1, label="Manager:   ")
-            manager_title.SetForegroundColour(wx.BLACK)
-            manager_title.SetFont(smallTitleFont)
-            manager_row.Add(manager_title)
-            manager_row.Add(manager)
 
             buttons = wx.BoxSizer(wx.HORIZONTAL)
             self.editTimeBtn = wx.Button(self, wx.ID_ANY, label="change time", size=(100, 40))
@@ -957,15 +959,23 @@ class EventPanel(wx.Panel):
 
             mainbox.AddSpacer(40)
             mainbox.Add(title_row, 0, wx.CENTER)
-            mainbox.AddSpacer(40)
-            mainbox.Add(date_row, 0, wx.CENTER)
-            mainbox.AddSpacer(20)
-            mainbox.Add(participants_row, 0, wx.CENTER)
-            mainbox.AddSpacer(20)
-            mainbox.Add(time_row, 0, wx.CENTER)
-            mainbox.AddSpacer(20)
-            mainbox.Add(manager_row, 0, wx.CENTER)
-            mainbox.AddSpacer(50)
+            if manager != "&&&" and name != "&&&":
+                mainbox.AddSpacer(40)
+                mainbox.Add(name_row, 0, wx.CENTER)
+                mainbox.AddSpacer(20)
+                mainbox.Add(participants_row, 0, wx.CENTER)
+                mainbox.AddSpacer(20)
+                mainbox.Add(time_row, 0, wx.CENTER)
+                mainbox.AddSpacer(20)
+                mainbox.Add(manager_row, 0, wx.CENTER)
+                mainbox.AddSpacer(50)
+            else:
+                mainbox.AddSpacer(50)
+                mainbox.Add(participants_row, 0, wx.CENTER)
+                mainbox.AddSpacer(30)
+                mainbox.Add(time_row, 0, wx.CENTER)
+                mainbox.AddSpacer(60)
+
             mainbox.Add(buttons, 0, wx.CENTER)
 
         else:

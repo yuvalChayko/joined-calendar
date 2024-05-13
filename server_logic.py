@@ -100,19 +100,26 @@ def handle_new_event(ip, params):
     :return:
     """
     calendar_id, name, start, end, date, participants = params
+    print("params", calendar_id, name, start, end, date, participants)
     participants = participants.split("^")
+    print(participants)
     username = [i for i in current_users if current_users[i] == ip][0]
     not_existing_participants = [i for i in participants if not db.is_user_exists(i)]
     not_in_calendar = []
-    if not not_existing_participants:
-        not_in_calendar = [i for i in participants if not db.is_participant_exists_in_calendar(calendar_id, i)]
+    print(not_existing_participants)
+    not_in_calendar = [i for i in participants if not db.is_participant_exists_in_calendar(calendar_id, i)]
+    print(not_in_calendar)
     not_existing_participants = list(set(not_existing_participants).union(set(not_in_calendar)))
-    print("not existing", not_existing_participants)
-    if not_existing_participants and not_existing_participants != [""]:
+    print("not existing", not_existing_participants, type(not_existing_participants))
+    if username in participants:
+        comm.send(ip, protocol.pack_new_event("1", "user"))
+    elif not_existing_participants and not_existing_participants != [""]:
         print(22222222222222)
         comm.send(ip, protocol.pack_new_event("1", not_existing_participants))
     else:
         if db.check_is_time_available(username, start, end, date):
+            if participants == [""]:
+                participants = []
             event_id = db.add_event(name, participants, calendar_id, username, start, end, date)
             comm.send(ip, protocol.pack_new_event("0", event_id))
             for p in participants:

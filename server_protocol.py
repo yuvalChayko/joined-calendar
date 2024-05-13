@@ -49,7 +49,7 @@ def pack_new_event(status, id_or_not_existing_participants):
     :return:
     """
     if status == "1":
-        if id_or_not_existing_participants:
+        if id_or_not_existing_participants and id_or_not_existing_participants != "user":
             id_or_not_existing_participants = "^".join(id_or_not_existing_participants)
 
     return f"04{status},{id_or_not_existing_participants}"

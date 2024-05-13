@@ -154,10 +154,13 @@ def handle_new_event(params):
     :return:
     """
     status, id_or_not_existing_participants = params
+    print("heree", id_or_not_existing_participants)
     if status == "1":
-        if id_or_not_existing_participants != "":
+        if id_or_not_existing_participants == "user":
+            call_error("can't invite yourself")
+        elif id_or_not_existing_participants != "" and id_or_not_existing_participants != "[]":
             id_or_not_existing_participants = id_or_not_existing_participants.split("^")
-            call_error(", ".join(id_or_not_existing_participants) + " do not exist")
+            call_error(", ".join(id_or_not_existing_participants) + " do not exist in calendar")
         else:
             call_error("time isn't available")
             print("time isnt available")
@@ -844,7 +847,7 @@ def handle_graphics(graphics_q):
 if __name__ == '__main__':
     msg_q = queue.Queue()
     graphics_q = queue.Queue()
-    comm = ClientComm('192.168.4.92', 4500, msg_q)
+    comm = ClientComm('127.0.0.1', 4500, msg_q)
     opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
                "05": handle_event_info, "10": handle_there_is_an_invitation, "11": handle_add_participant_to_calendar,
                "13": handle_is_event_invitation_work, "14": handle_invitations, "15": handle_is_calendar_invitation_work,

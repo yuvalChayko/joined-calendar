@@ -833,9 +833,13 @@ class joined_calendar_db:
         """
         day, month, year = date.split('.')
         day_events = None
+        day_ids = []
         if self._is_calendar_exists(calendar_id):
             print("exists")
-            day_ids = self.get_day_ids(username, date)
+            participants = self.get_calendar_participants(calendar_id)
+            for p in participants:
+                day_ids += self.get_day_ids(p, date)
+            day_ids = list(set(day_ids))
             print(day_ids)
             day_events = []
             for id in day_ids:
