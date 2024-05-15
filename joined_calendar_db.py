@@ -16,10 +16,9 @@ class joined_calendar_db:
         self.calendar_invitations = "calendar_invitations"
         self.event_invitations = "event_invitations"
         self.reminders = "reminders"
-        self.colors = ['BLUE', 'YELLOW', 'GREEN', 'PURPLE','PINK', 'GREY', 'ORANGE', 'BROWN', 'GOLD', 'TURQUOISE', 'LIGHT BLUE', 'LIME GREEN', 'SALMON', 'DARK OLIVE GREEN']
+        self.colors = ['BLUE', 'GREEN', 'PURPLE', 'PINK', 'GREY', 'ORANGE', 'BROWN', 'GOLD', 'TURQUOISE', 'LIGHT BLUE', 'LIME GREEN', 'SALMON', 'DARK OLIVE GREEN']
         self.joined_color = 'RED'
-        self.last_event_id = 1000
-        self.last_calendar_id = 100
+
 
         self._create_db()
 

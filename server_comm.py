@@ -15,7 +15,6 @@ class ServerComm:
         # socket: [ip, encryption]
         self.open_clients = {}
         self.is_running = False
-        self.count = 1
         self.g = 6269
         self.p = 1433
         threading.Thread(target=self._main_loop).start()
