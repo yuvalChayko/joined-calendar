@@ -43,7 +43,7 @@ class joined_calendar_db:
                 "CREATE TABLE IF NOT EXISTS " + self.calendar_invitations +
                 " (username VARCHAR(20), invited_by VARCHAR(20), calendar_id VARCHAR(3), PRIMARY KEY(username, invited_by, calendar_id))",
                 "CREATE TABLE IF NOT EXISTS " + self.event_invitations +
-                " (username VARCHAR(20), invited_by VARCHAR(20), calendar_id VARCHAR(3), event_id VARCHAR(4), PRIMARY KEY(username, invited_by, calendar_id, event_id))",
+                " (username VARCHAR(20), invited_by VARCHAR(20), calendar_id VARCHAR(3), event_id VARCHAR(4), PRIMARY KEY(username, invited_by, event_id))",
                 "CREATE TABLE IF NOT EXISTS " + self.reminders +
                 " (username VARCHAR(20), event_id VARCHAR(4), date VARCHAR(10), time VARCHAR(5), PRIMARY KEY(username, event_id))"]
 
@@ -58,7 +58,6 @@ class joined_calendar_db:
         :return: bool
         """
         sql_table = "SELECT calendar_id FROM " + self.calendars + " WHERE calendar_id = ?"
-        print(f"hereeee {calendar_id}")
         self.db_cursor.execute(sql_table, (calendar_id,))
         return self.db_cursor.fetchone() is not None
 
@@ -591,8 +590,6 @@ class joined_calendar_db:
                 status = 2
                 # remove from calendar
 
-                #self.calendars_participants, self.event_info, self.events_participants, self.event_invitations, self.reminders
-
                 sql = "DELETE FROM " + self.calendars_participants + " WHERE calendar_id = ? AND participant = ?"
                 self.db_cursor.execute(sql, (calendar_id, username, ))
                 self.db_conn.commit()
@@ -808,7 +805,6 @@ class joined_calendar_db:
                     else:
                         events.append(temp)
 
-        print(f"in db-------------------------{events}")
         return events
 
     def get_color(self, username, calendar_id):
@@ -834,17 +830,14 @@ class joined_calendar_db:
         day_events = None
         day_ids = []
         if self._is_calendar_exists(calendar_id):
-            print("exists")
             participants = self.get_calendar_participants(calendar_id)
             for p in participants:
                 day_ids += self.get_day_ids(p, date)
             day_ids = list(set(day_ids))
-            print(day_ids)
             day_events = []
             for id in day_ids:
                 day_events += [self.get_event_info(id, username, calendar_id)]
                 day_events[-1][-1] = str(day_events[-1][-1])
-        print(f"day events {day_events}")
         return day_events
 
     def get_day_ids(self, participant, date):
@@ -854,17 +847,14 @@ class joined_calendar_db:
         :param date:
         :return:
         """
-        print(f" date {date}")
         sql = "SELECT event_id FROM " + self.event_info + " WHERE date = ?"
         self.db_cursor.execute(sql, (date, ))
         event_ids = self.db_cursor.fetchall()
         event_ids = set([str(i[0]) for i in event_ids])
-        print(event_ids)
         sql = "SELECT event_id FROM " + self.events_participants + " WHERE participant = ?"
         self.db_cursor.execute(sql, (participant,))
         event_ids2 = self.db_cursor.fetchall()
         event_ids2 = set([i[0] for i in event_ids2])
-        print(event_ids2)
         final = list(event_ids & event_ids2)
         return final
 
@@ -907,6 +897,7 @@ class joined_calendar_db:
         :param calendar_id:
         :return:
         """
+        name = ""
         if self._is_calendar_exists(calendar_id):
             sql = "SELECT name FROM " + self.calendars + " WHERE calendar_id = ?"
             self.db_cursor.execute(sql, (calendar_id,))
@@ -927,7 +918,6 @@ class joined_calendar_db:
         event_ids = [i[0] for i in event_ids]
         for id in event_ids:
             temp = self.get_some_event_info(id, calendar_id)
-            print("hereeeeee", temp)
             if len(temp) != 0:
                 if len(day_color) == 0:
                     day_color = temp
@@ -937,7 +927,6 @@ class joined_calendar_db:
                     if temp[1] != day_color[1]:
                         day_color[1] = 'RED'
                         break
-        print("day color", day_color)
         return day_color
 
     def get_event_date(self, event_id):
@@ -1011,7 +1000,7 @@ class joined_calendar_db:
         """
         sql = "SELECT calendar_id FROM " + self.event_info + " WHERE event_id = ?"
         self.db_cursor.execute(sql, (event_id,))
-        id =  self.db_cursor.fetchone()
+        id = self.db_cursor.fetchone()
         if not id:
             id = [""]
         return id[0]
@@ -1066,6 +1055,3 @@ if __name__ == '__main__':
     print(db.get_day_color("12.02.2024", "2"))
     print(db.get_day_color("10.02.2024", "1"))
     print(db.get_day_color("13.02.2024", "2"))
-
-
-    #print(db.find_color("100"))

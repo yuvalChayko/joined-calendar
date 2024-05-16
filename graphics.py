@@ -97,13 +97,10 @@ class MainPanel(wx.Panel):
         :param participants:
         :return:
         """
-        # self.calendar.change_calendar(name, manager, participants)
         self.v_box.Detach(self.calendar)
         self.calendar = CalendarPanel(self, self.frame, name, participants, manager)
         self.v_box.Add(self.calendar, 1, wx.EXPAND)
-        # print("here")
-        # print(name)
-        # self.SetSizerAndFit(self.v_box)
+
         self.SetSizer(self.v_box)
         self.frame.SetStatusText("Red is the joined color")
         self.calendar.Show()
@@ -114,7 +111,6 @@ class MainPanel(wx.Panel):
         :param params: name, manager, start, end, date, participants, id or name, manager, participants, id
         :return:
         """
-        print(f"in invitations {params}")
         self.v_box.Detach(self.invitations)
         if len(params) == 7:
             self.invitations = invitationsPanel(self, self.frame, params[0], params[2], params[1], params[3], params[4], params[5])
@@ -125,6 +121,17 @@ class MainPanel(wx.Panel):
         self.v_box.Add(self.invitations, 1, wx.EXPAND)
         self.SetSizer(self.v_box)
         self.invitations.Show()
+
+    def show_new_cal_parti(self, name):
+        """
+        change new calendar participant panel
+        :param name:
+        :return:
+        """
+        self.v_box.Detach(self.new_cal_parti)
+        self.new_cal_parti = newCalendarParticipantPanel(self, self.frame, name)
+        self.v_box.Add(self.new_cal_parti, 1, wx.EXPAND)
+        self.SetSizer(self.v_box)
 
     def hide_panel(self, panel):
         """
@@ -172,7 +179,6 @@ class MainPanel(wx.Panel):
         :param dates:
         :return:
         """
-        print("in parent", dates)
         self.calendar.mark_dates(dates)
 
 
@@ -191,7 +197,7 @@ class MainPanel(wx.Panel):
         :param events:
         :return:
         """
-        print(f"here {event}")
+        self.calendar.Hide()
         self.v_box.Detach(self.event)
         self.event.events = event # [id, date, name, start, end, manager, [participants]]
         if type(event) is list and len(event) == 7:
@@ -202,20 +208,16 @@ class MainPanel(wx.Panel):
             self.event = EventPanel(self, self.frame, date=event)
 
         self.v_box.Add(self.event, 1, wx.EXPAND)
-        # print("here")
-        # print(name)
-        # self.SetSizerAndFit(self.v_box)
         self.SetSizer(self.v_box)
         self.event.Show()
-        # else:
-        #     self.v_box.Detach(self.no_events)
-        #     self.no_events = NoEventsPanel(self, self.frame, event[0])
-        #     self.v_box.Add(self.no_events, 1, wx.EXPAND)
-        #     self.SetSizer(self.v_box)
-        #     self.no_events.Show()
 
 
     def show_new_event(self, date):
+        """
+        show events on screen
+        :param date:
+        :return:
+        """
         self.v_box.Detach(self.new_event)
         self.new_event = newEventPanel(self, self.frame, date)
         self.v_box.Add(self.new_event, 1, wx.EXPAND)
@@ -224,10 +226,18 @@ class MainPanel(wx.Panel):
         self.new_event.Show()
 
     def color_invitation(self):
+        """
+        color the invitation button green
+        :return:
+        """
         self.calendar.invitationBtn.SetForegroundColour(wx.GREEN)
         self.Refresh()
 
     def uncolor_invitation(self):
+        """
+        color the invitation button grey
+        :return:
+        """
         self.calendar.invitationBtn.SetForegroundColour(wx.BLACK)
         self.Refresh()
 
@@ -263,7 +273,6 @@ class LoginPanel(wx.Panel):
         self.passField.SetFont(smallfont)
         passBox.Add(passText, 0, wx.ALL, 5)
         passBox.Add(self.passField, 0,  wx.ALL, 5)
-        # login & registration buttons
         login = wx.Image("pics\\done.png")
         login.Rescale(250, 100)
         back = wx.Image("pics\\back.png")
@@ -280,21 +289,12 @@ class LoginPanel(wx.Panel):
         backBtn.SetWindowStyleFlag(wx.NO_BORDER)
 
         btnBox = wx.BoxSizer(wx.HORIZONTAL)
-        # backBtn = wx.Button(self, wx.ID_ANY, label="Back", size=(200, 80))
         backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
         btnBox.Add(backBtn, 1, wx.ALL, 5)
         btnBox.AddSpacer(40)
-        # registerBtn = wx.Button(self, wx.ID_ANY, label="register", size=(200, 80))
         logBtn.Bind(wx.EVT_BUTTON, self.handle_login)
         btnBox.Add(logBtn, 0, wx.ALL, 5)
-        # btnBox = wx.BoxSizer(wx.HORIZONTAL)
-        # backBtn = wx.Button(self, wx.ID_ANY, label="Back", size=(200, 80))
-        # backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
-        # btnBox.Add(backBtn, 1, wx.ALL, 5)
-        # btnBox.AddSpacer(40)
-        # loginBtn = wx.Button(self, wx.ID_ANY, label="login", size=(200, 80))
-        # loginBtn.Bind(wx.EVT_BUTTON, self.handle_login)
-        # btnBox.Add(loginBtn, 0, wx.ALL, 5)
+
         # add all elements to sizer
         sizer.AddSpacer(40)
         sizer.Add(title, 0, wx.CENTER | wx.TOP, 5)
@@ -314,15 +314,24 @@ class LoginPanel(wx.Panel):
 
 
     def handle_login(self, event):
+        """
+        try to login
+        :param event:
+        :return:
+        """
         username = self.nameField.GetValue()
         password = self.passField.GetValue()
         if not username or not password :
             self.frame.SetStatusText("Must enter name and password")
         else:
-            # self.frame.SetStatusText("waiting for Server approve")
             self.frame.graphics_q.put(("login", (username, password)))
 
     def handle_back(self, event):
+        """
+        go back to first panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.first.Show()
@@ -368,7 +377,6 @@ class RegistrationPanel(wx.Panel):
         self.phoneField.SetFont(smallfont)
         phoneBox.Add(phoneText, 0, wx.ALL, 5)
         phoneBox.Add(self.phoneField, 0,  wx.ALL, 5)
-        # login & registration buttons
         register = wx.Image("pics\\done.png")
         register.Rescale(250, 100)
         back = wx.Image("pics\\back.png")
@@ -386,11 +394,9 @@ class RegistrationPanel(wx.Panel):
 
 
         btnBox = wx.BoxSizer(wx.HORIZONTAL)
-        # backBtn = wx.Button(self, wx.ID_ANY, label="Back", size=(200, 80))
         backBtn.Bind(wx.EVT_BUTTON, self.handle_back)
         btnBox.Add(backBtn, 1, wx.ALL, 5)
         btnBox.AddSpacer(40)
-        # registerBtn = wx.Button(self, wx.ID_ANY, label="register", size=(200, 80))
         regBtn.Bind(wx.EVT_BUTTON, self.handle_registration)
         btnBox.Add(regBtn, 0, wx.ALL, 5)
         # add all elements to sizer
@@ -415,16 +421,25 @@ class RegistrationPanel(wx.Panel):
 
 
     def handle_registration(self, event):
+        """
+        try to register
+        :param event:
+        :return:
+        """
         username = self.nameField.GetValue()
         password = self.passField.GetValue()
         phone = self.phoneField.GetValue()
         if not username or not password or not phone:
             self.frame.SetStatusText("Must enter name, password and phone")
         else:
-            # self.frame.SetStatusText("waiting for Server approve")
             self.frame.graphics_q.put(("register", (username, password, phone)))
 
     def handle_back(self, event):
+        """
+        go bacl to first screen
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.first.Show()
@@ -467,11 +482,21 @@ class FirstPanel(wx.Panel):
         self.Hide()
 
     def handle_login(self, event):
+        """
+        open login panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText('')
         self.Hide()
         self.parent.login.Show()
 
     def handle_reg(self, event):
+        """
+        open registration panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText('')
         self.Hide()                                                                         
         self.parent.registration.Show()
@@ -484,6 +509,7 @@ class CalendarPanel(wx.Panel):
         self.parent = parent
         self.SetBackgroundColour(wx.LIGHT_GREY)
         self.events = []
+        self.name = name
 
         self.title_row = wx.BoxSizer(wx.HORIZONTAL)
         # title
@@ -499,7 +525,6 @@ class CalendarPanel(wx.Panel):
         right.Rescale(100, 80)
         left = wx.Bitmap(left)
         right = wx.Bitmap(right)
-        # create button at point (20, 20)
         self.leftBtn = wx.BitmapButton(self,
                             size=(100, 80), pos=(100,50), name="button", bitmap=left)
         self.leftBtn.SetBackgroundColour(wx.LIGHT_GREY)
@@ -512,8 +537,7 @@ class CalendarPanel(wx.Panel):
         self.rightBtn.Bind(wx.EVT_BUTTON, self.right_cal)
 
         # set bmp as bitmap for button
-        #self.leftBtn.SetBitmap(left)
-        #self.rightBtn.SetBitmap(right)
+
         self.title_row.Add(self.leftBtn, 1, wx.ALL, 5)
         self.title_row.Add(self.rightBtn, 1, wx.ALL, 5)
         btnBox2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -530,24 +554,8 @@ class CalendarPanel(wx.Panel):
         self.title_row.Add(btnBox2, 0, wx.ALL, 5)
 
 
-
-
-        # participants = ["1", "2", "3"]
-        # p_text = wx.StaticText(self, -1, "participants: ", pos = (430, 30))
-        # p = wx.Choice(self, -1, pos = (450, 30), choices=participants)
-
         self.mainbox = wx.BoxSizer(wx.VERTICAL)
 
-        # self.newBtn = wx.Button(self, wx.ID_ANY, label="new calendar", size=(100, 40), pos=(400, 0))
-        # self.newBtn.Bind(wx.EVT_BUTTON, self.new_calendar)
-        #
-        # mainbox.AddSpacer(20)
-        # mainbox.Add(self.newBtn, 0, wx.ALL, 5)
-        #
-        # # button
-        # self.partBtn = wx.Button(self, wx.ID_ANY, label="participants", size=(100, 40), pos=(10,0))
-        # self.partBtn.Bind(wx.EVT_BUTTON, self.display)
-        #
 
         self.btnBox = wx.BoxSizer(wx.HORIZONTAL)
         self.partBtn = wx.Button(self, wx.ID_ANY, label="participants", size=(100, 40))
@@ -569,7 +577,6 @@ class CalendarPanel(wx.Panel):
         self.mainbox.Add(self.btnBox)
 
         self.mainbox.AddSpacer(20)
-        # mainbox.Add(self.partBtn,  0, wx.ALL, 5)
 
 
         self.mainbox.Add(self.title, 0, wx.CENTER)
@@ -577,33 +584,15 @@ class CalendarPanel(wx.Panel):
 
         calSizer =  wx.BoxSizer(wx.VERTICAL)
 
-        # self.cal = CalendarCtrl(self, 0, wx.DateTime().Today(),
-        #                             size=(800,800) ,name="cal-1")
-
 
         self.cal = GenericCalendarCtrl(self, -1, wx.DateTime().Today(),
                                    style = wx.adv.CAL_SUNDAY_FIRST
                                         | wx.adv.CAL_SEQUENTIAL_MONTH_SELECTION,name="cal-2",size=(720,450))
-        # self.cal.SetHolidayColours(wx.BLUE, wx.BLUE)
-        # self.cal.SetHoliday(21)
-        # self.cal.SetHolidayColours(wx.GREEN, wx.GREEN)
-        # self.cal.SetHoliday(22)
 
-        # self.cal.SetAttr(21, wx.adv.CalendarDateAttr(colBack='green'))
-        # self.cal.SetAttr(22, wx.adv.CalendarDateAttr(colBack='blue'))
-        # self.cal.ResetAttr(21)
         self.cal.SetFont(calfont)
 
 
 
-        #self.cal.SetBackgroundColour(wx.LIGHT_GREY)
-
-
-        # self.cal = Calendar(self, pos=(20,20), size=(900,800))
-        # self.cal.ShowWeekEnd()
-        #
-        # year = self.cal.GetYear()
-        # month = self.cal.GetMonth()
 
 
         self.OnChangeMonth()
@@ -616,45 +605,20 @@ class CalendarPanel(wx.Panel):
         self.current_month = str(today.month).zfill(2)
 
         # create some sizers for layout
-        #fgs = wx.FlexGridSizer(cols=2, hgap=50, vgap=50)
-
-
-        # txt = wx.StaticText(self, -1, "Calendar-1")
-        # v_box.Add(txt)
         self.mainbox.AddSpacer(20)
         self.mainbox.Add(self.cal,0, wx.ALL | wx.CENTER,5)
 
 
-
-        #box = wx.BoxSizer()
-        #box.Add(fgs, 1, wx.EXPAND | wx.ALL, 25)
-
-        #mainbox.Add(calSizer, 1, wx.EXPAND)
-
         self.frame.SetStatusText("Red is the joined color")
         self.SetSizer(self.mainbox)
         # arrange the screen
-        # self.SetSizer(sizer)
         self.Layout()
         self.Hide()
 
 
 
-    # def change_calendar(self, name, manager, participants):
-    #     """
-    #     change calendar on screen
-    #     :param name:
-    #     :param manager:
-    #     :param participants:
-    #     :return:
-    #     """
-
-
     def OnCalSelected(self, evt):
         print('OnCalSelected: %s\n' % evt.Date)
-        # if evt.Date.month == wx.DateTime.Aug and evt.Date.day == 14:
-        #     print("HAPPY BIRTHDAY!")
-
         cal = evt.GetEventObject()
         print('name: %s\n' % cal.GetName())
 
@@ -665,12 +629,12 @@ class CalendarPanel(wx.Panel):
         print('name: %s\n' % cal.GetName())
 
     def OnCalSelChanged(self, evt):
+        """
+        open day or change month (depends on where the user clicked)
+        :param evt:
+        :return:
+        """
         cal = evt.GetEventObject()
-        # print("OnCalSelChanged:\n\t%s: %s\n\t%s: %s" %
-        #                ("EventObject", cal.__class__,
-        #                 "Date       ", cal.GetDate(),
-        #                 ))
-        # print('name: %s\n' % cal.GetName())
         month = str(cal.GetDate())[4:7]
         monthes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         month_num = str(monthes.index(month) + 1).zfill(2)
@@ -693,18 +657,22 @@ class CalendarPanel(wx.Panel):
             cal = self.cal
         else:
             cal = evt.GetEventObject()
-        # print('OnChangeMonth: %s\n' % cal.GetDate())
-        # cur_month = cal.GetDate().GetMonth() + 1   # convert wxDateTime 0-11 => 1-12
-        # for month, day in self.events:
-        #     if month == cur_month:
-        #         cal.SetHoliday(day)
 
     def display(self, evt):
+        """
+        display participants scrolled panel
+        :param evt:
+        :return:
+        """
         self.partBtn.Hide()
         self.myScrolled.Show()
 
     def new_calendar(self, evt):
-        print("open add new calendar panel")
+        """
+        open new calendar panel
+        :param evt:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.new_cal.Show()
@@ -713,50 +681,79 @@ class CalendarPanel(wx.Panel):
 
 
     def left_cal(self, evt):
-        print("scroll to left cal")
+        """
+        scroll to left calendar if possible
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("left", ()))
 
     def right_cal(self, evt):
-        print("scroll to right cal")
+        """
+        scroll to right calendar if possible
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("right", ()))
 
 
     def change_calendar_name(self, evt):
-        print("try to change calendar name")
+        """
+        open calendar name change panel
+        :param evt:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.cal_name.Show()
 
     def add_calendar_participant(self, evt):
-        print("try to add participant to calendar")
+        """
+        open add calendar participants panel
+        :param evt:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
+        self.parent.show_new_cal_parti(self.name)
         self.parent.new_cal_parti.Show()
         self.frame.SetStatusText("participants names must be separated with ', '")
 
 
     def show_invitations(self, evt):
-        print("show invitations")
+        """
+        open invitation panel
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("invitations", ()))
 
     def exit_calendar(self, evt):
-        print("exit calendar")
+        """
+        exit calendar
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("exit cal", ()))
 
 
     def mark_dates(self, dates):
-        print(f"mark in calendar {dates}")
+        """
+        mark dates in calendar
+        :param dates:
+        :return:
+        """
         for i in dates:
             self.cal.SetAttr(i[0], wx.adv.CalendarDateAttr(colBack=i[1]))
-        #self.SetSizer(self.mainbox)
-        #self.Layout()
-
-        #self.Hide()
-        #self.Show()
 
         self.Refresh()
 
     def unmark_dates(self, dates):
+        """
+        unmark dates in calendar
+        :param dates:
+        :return:
+        """
         for i in dates:
             self.cal.ResetAttr(i)
         self.Layout()
@@ -803,13 +800,6 @@ class ParticipantsPanel(wx.Panel):
 
         self.display_participants()
 
-        # self.main_box.AddSpacer(20)
-        # self.main_box.Add(self.closeBtn,  1, wx.ALL, 5)
-
-
-
-
-
         self.SetSizer(self.main_box)
 
         self.Hide()
@@ -818,12 +808,20 @@ class ParticipantsPanel(wx.Panel):
 
 
     def close(self, evt):
-        print("in close")
+        """
+        close scrolled panel and return the button
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.participantsBTN.Show()
 
 
     def display_participants(self):
+        """
+        display scrolled panel of participants in calendar
+        :return:
+        """
         self.spSizer = wx.BoxSizer(wx.VERTICAL)
         if self.participants != ["1", "2", "3"]:
             for parti in self.participants:
@@ -881,7 +879,6 @@ class EventPanel(wx.Panel):
             right.Rescale(100, 80)
             left = wx.Bitmap(left)
             right = wx.Bitmap(right)
-            # create button at point (20, 20)
             self.leftBtn = wx.BitmapButton(self,
                                 size=(100, 80), pos=(100,50), name="button", bitmap=left)
             self.leftBtn.SetBackgroundColour(wx.LIGHT_GREY)
@@ -897,7 +894,7 @@ class EventPanel(wx.Panel):
             title_row.Add(self.leftBtn, 1, wx.ALL, 5)
             title_row.AddSpacer(200)
             title_row.Add(title, 1, wx.ALL, 5)
-            title_row.AddSpacer(200)
+            title_row.AddSpacer(170)
             title_row.Add(self.rightBtn, 1, wx.ALL, 5)
 
             if manager != "&&&" and name != "&&&":
@@ -980,8 +977,6 @@ class EventPanel(wx.Panel):
 
         else:
             # title
-            print("hereeeee")
-            print(date)
             words = wx.BoxSizer(wx.VERTICAL)
             title = wx.StaticText(self, -1, label="There are no events on")
             titlefont = wx.Font(45, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
@@ -1002,37 +997,74 @@ class EventPanel(wx.Panel):
 
 
     def left_event(self, evt):
-        print("scroll to left event")
+        """
+        scroll to left event if possible
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("left event", ()))
 
     def right_event(self, evt):
-        print("scroll to right event")
+        """
+        scroll to right event if possible
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("right event", ()))
 
     def go_back(self, evt):
+        """
+        go back to calendar panel
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.frame.SetStatusText("Red is the joined color")
         self.parent.calendar.Show()
 
     def new_event(self, evt):
-        print("new event")
+        """
+        go to new event panel
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.frame.SetStatusText("participants names must be separated with ', '")
         self.parent.show_new_event(self.date)
 
 
     def del_event(self, evt):
+        """
+        try to delete event
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("del evt", ()))
 
     def change_name(self, evt):
+        """
+        ope change event name panel
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.parent.evt_name.Show()
 
     def change_time(self, evt):
+        """
+        open change event time panel
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.parent.evt_time.Show()
 
     def add_evt_parti(self, evt):
+        """
+        open add event participants panel
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.frame.SetStatusText("participants names must be separated with ', '")
         self.parent.new_evt_parti.Show()
@@ -1109,6 +1141,11 @@ class newCalendarPanel(wx.Panel):
         self.Hide()
 
     def handle_new_calendar(self, event):
+        """
+        try to open new calendar
+        :param event:
+        :return:
+        """
         name = self.nameField.GetValue()
         participants = self.partiField.GetValue()
         if not name or not participants:
@@ -1118,6 +1155,11 @@ class newCalendarPanel(wx.Panel):
             self.frame.graphics_q.put(("new cal", (name, participants)))
 
     def handle_back(self, event):
+        """
+        go back to event panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.frame.SetStatusText("Red is the joined color")
@@ -1191,6 +1233,11 @@ class newCalendarParticipantPanel(wx.Panel):
         self.Hide()
 
     def handle_new_calendar_parti(self, event):
+        """
+        try to add participants to calendar
+        :param event:
+        :return:
+        """
         participants = self.partiField.GetValue()
         if not participants :
             self.frame.SetStatusText("Must enter participants")
@@ -1200,6 +1247,11 @@ class newCalendarParticipantPanel(wx.Panel):
             self.frame.graphics_q.put(("new cal parti", (participants)))
 
     def handle_back(self, event):
+        """
+        go back to calendar panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.frame.SetStatusText("Red is the joined color")
@@ -1341,22 +1393,45 @@ class invitationsPanel(wx.Panel):
 
 
     def left_invitation(self, evt):
-        print("scroll to left invitation")
+        """
+        scroll to left invitation if possible
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("left invitation", ()))
 
     def right_invitation(self, evt):
-        print("scroll to right invitation")
+        """
+        scroll to right invitation if possible
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("right invitation", ()))
 
     def go_back(self, evt):
+        """
+        go back to calendar panel
+        :param evt:
+        :return:
+        """
         self.Hide()
         self.frame.SetStatusText("Red is the joined color")
         self.parent.calendar.Show()
 
     def accept(self, evt):
+        """
+        accept invitation
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("response", ("0")))
 
     def decline(self, evt):
+        """
+        decline invitation
+        :param evt:
+        :return:
+        """
         self.frame.graphics_q.put(("response", ("1")))
 
 
@@ -1427,6 +1502,11 @@ class newEventParticipantPanel(wx.Panel):
         self.Hide()
 
     def handle_new_event_parti(self, event):
+        """
+        try to add participants to event
+        :param event:
+        :return:
+        """
         participants = self.partiField.GetValue()
         if not participants :
             self.frame.SetStatusText("Must enter participants")
@@ -1436,6 +1516,11 @@ class newEventParticipantPanel(wx.Panel):
             self.frame.graphics_q.put(("new evt parti", (participants)))
 
     def handle_back(self, event):
+        """
+        go back to event panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.event.Show()
@@ -1539,6 +1624,11 @@ class newEventPanel(wx.Panel):
         self.Hide()
 
     def handle_new_event(self, event):
+        """
+        try to add event
+        :param event:
+        :return:
+        """
         name = self.nameField.GetValue()
         participants = self.partiField.GetValue()
         start = self.startField.GetValue()
@@ -1552,6 +1642,11 @@ class newEventPanel(wx.Panel):
             self.frame.graphics_q.put(("new event", (name, participants, start, end, self.date)))
 
     def handle_back(self, event):
+        """
+        go back to event panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.event.Show()
@@ -1619,6 +1714,11 @@ class calNamePanel(wx.Panel):
         self.Hide()
 
     def handle_new_name(self, event):
+        """
+        try to change calendar name
+        :param event:
+        :return:
+        """
         name = self.nameField.GetValue()
 
         if not name:
@@ -1627,6 +1727,11 @@ class calNamePanel(wx.Panel):
             self.frame.graphics_q.put(("cal name", (name)))
 
     def handle_back(self, event):
+        """
+        go back to calendar panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.calendar.Show()
@@ -1694,6 +1799,11 @@ class evtNamePanel(wx.Panel):
         self.Hide()
 
     def handle_new_name(self, event):
+        """
+        try to change event name
+        :param event:
+        :return:
+        """
         name = self.nameField.GetValue()
 
         if not name:
@@ -1702,6 +1812,11 @@ class evtNamePanel(wx.Panel):
             self.frame.graphics_q.put(("evt name", (name)))
 
     def handle_back(self, event):
+        """
+        go back to event panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.event.Show()
@@ -1791,6 +1906,11 @@ class evtTimePanel(wx.Panel):
         self.Hide()
 
     def handle_new_time(self, event):
+        """
+        try to change time of event
+        :param event:
+        :return:
+        """
         date = self.dateField.GetValue()
         start = self.startField.GetValue()
         end = self.endField.GetValue()
@@ -1802,6 +1922,11 @@ class evtTimePanel(wx.Panel):
             self.frame.graphics_q.put(("evt time", (date, start, end)))
 
     def handle_back(self, event):
+        """
+        go back to event panel
+        :param event:
+        :return:
+        """
         self.frame.SetStatusText("")
         self.Hide()
         self.parent.event.Show()

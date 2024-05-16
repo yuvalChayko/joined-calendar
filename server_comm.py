@@ -12,7 +12,6 @@ class ServerComm:
         self.port = port
         self.rcv_q = rcv_q
         self.socket = socket.socket()
-        # socket: [ip, encryption]
         self.open_clients = {}
         self.is_running = False
         self.g = 6269

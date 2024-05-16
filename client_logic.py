@@ -52,7 +52,6 @@ def login(username, password):
     :return:
     """
     if "^" in username or "*" in username or "," in username or "$" in username or "^" in password or "*" in password or "," in password or "$" in password or len(password) < 5:
-        print("not valid input")
         call_error("not valid input")
     else:
         comm.send(protocol.pack_login(username, password))
@@ -64,7 +63,6 @@ def handle_sign_up(params):
     :param params:
     :return:
     """
-    print("here")
     msg_to_send = "succeed"
     if params[0] == "1":
         msg_to_send = "username already taken"
@@ -85,7 +83,6 @@ def sign_up(username, password, phone_number):
     """
     if "^" in username or "*" in username or "," in username or "$" in username or "^" in password or "*" in password or "," in password or "$" in password or len(password) < 5 or not phone_number.isdigit() or len(phone_number) != 10:
         call_error("not valid input")
-        print("not valid input")
     else:
         comm.send(protocol.pack_signup(username, password, phone_number))
 
@@ -115,22 +112,17 @@ def handle_new_calendar(params):
             participants[i] = participants[i].split("$")
         global_params.current_calendar = [calendar_id, participants, name, manager]
         global_params.user_calendars.append(calendar_id)
-        print(f"new calendar {data_or_not_existing_participants}")
         wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=manager, participants=participants)
     elif status == "9":
         calendar_id, name, manager, participants = data_or_not_existing_participants.split("^")
         participants = participants.split("*")
-        print(participants)
         for i in range(len(participants)):
             participants[i] = participants[i].split("$")
         global_params.current_calendar = [calendar_id, participants, name, manager]
-        print(f"new calendar {data_or_not_existing_participants}")
-        print(calendar_id, name, manager, participants)
         wx.CallAfter(pub.sendMessage, "show calendar", name=name, manager=manager, participants=participants)
     else:
         error = ", ".join(data_or_not_existing_participants.split("^")) + "do not exist"
         call_error(error)
-        print("couldnt open calendar because", ", ".join(data_or_not_existing_participants.split("^")), "do not exist")
 
 
 def new_calendar(name, participants):
@@ -142,7 +134,6 @@ def new_calendar(name, participants):
     """
     if name == "personal" or "^" in name or "*" in name or "," in name or "$" in name:
         call_error("name can't be 'personal' or contain '^', '*', '$', ','")
-        print("name not valid")
     else:
         comm.send(protocol.pack_new_calendar(name, participants))
 
@@ -154,7 +145,6 @@ def handle_new_event(params):
     :return:
     """
     status, id_or_not_existing_participants = params
-    print("heree", id_or_not_existing_participants)
     if status == "1":
         if id_or_not_existing_participants == "user":
             call_error("can't invite yourself")
@@ -163,9 +153,7 @@ def handle_new_event(params):
             call_error(", ".join(id_or_not_existing_participants) + " do not exist in calendar")
         else:
             call_error("time isn't available")
-            print("time isnt available")
     else:
-        print("succeed - return to calendar screen")
         wx.CallAfter(pub.sendMessage, "hide", panel="new event")
 
 
@@ -178,7 +166,6 @@ def new_event(calendar_id, name, participants, start, end, date):
     flag = True
     if "^" in name or "*" in name or "," in name or "$" in name:
         call_error("name can't contain '^', '*', '$', ','")
-        print("name not valid")
     else:
 
         time_format = "%H:%M"
@@ -206,13 +193,11 @@ def handle_event_info(params):
     date, color = params
     if date in month_events.keys():
         del month_events[date]
-        print("remove events dot from screen")
 
     if color:
         month = date[3: 5]
         if month == global_params.current_month:
             month_events[date] = color
-            print("add events dot to screen")
     if color:
         wx.CallAfter(pub.sendMessage, "mark", dates=[[int(date[:2]), color]])
     else:
@@ -267,7 +252,6 @@ def handle_add_participant_to_calendar(params):
     status, calendar_id, username = params
     if global_params.current_calendar[0] == calendar_id:
         global_params.current_calendar[1].append(username)
-        print(f"{username} joined the calendar")
 
 
 def response_to_calendar_invitation(status, calendar_id):
@@ -287,7 +271,6 @@ def handle_there_is_an_invitation(params):
     :return:
     """
     wx.CallAfter(pub.sendMessage, "new invitation")
-    print("there is an invitation")
 
 
 def invite_to_event(username, calendar_id, event_id):
@@ -345,9 +328,7 @@ def change_name_of_calendar(name, calendar_id):
     :param calendar_id:
     :return:
     """
-    print(name, calendar_id)
     if name == "personal" or "^" in name or "*" in name or "," in name or "$" in name:
-        print("name not valid")
         call_error("name can't be 'personal' or contain '^', '*', '$', ','")
     elif global_params.current_calendar[2] == "personal":
         call_error("can't change name of personal calendar")
@@ -370,9 +351,7 @@ def handle_calendar_name_change(params):
             dates = []
             for i in month_events.keys():
                 dates += [[int(i[:2]), month_events[i]]]
-            print(dates)
             wx.CallAfter(pub.sendMessage, "mark", dates=dates)
-            print("there is a new name for the calendar")
     else:
         call_error("couldnt change name of calendar because you are not the manager")
 
@@ -386,7 +365,6 @@ def change_name_of_event(name, event_id):
     """
     if "^" in name or "*" in name or "," in name or "$" in name:
         call_error("name can't contain '^', '*', '$', ','")
-        print("name not valid")
     else:
         comm.send(protocol.pack_event_name_edit(event_id, name))
 
@@ -398,16 +376,11 @@ def handle_event_name_change(params):
     :return:
     """
     status, event_id, name = params
-    print(event_id, "event")
-    print(global_params.day_events)
     if status == '0':
-        print("day", global_params.day_events)
         current_event = [i for i in range(len(global_params.day_events)) if global_params.day_events[i][-1] == str(event_id)][-1]
-        print(current_event)
         global_params.day_events[current_event][1] = name
         wx.CallAfter(pub.sendMessage, "hide", panel="evt name")
         wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
-        print("name of event changed successfully")
     else:
         call_error("you are not the manager so couldnt change name of event")
 
@@ -437,7 +410,6 @@ def change_time(event_id, start, end, date):
         comm.send(protocol.pack_event_time_edit(event_id, start, end, date))
     else:
         call_error("not valid input")
-        print("not valid time")
 
 
 def handle_time_change(params):
@@ -459,7 +431,6 @@ def handle_time_change(params):
                 global_params.day_events[i][3] = end
                 wx.CallAfter(pub.sendMessage, "hide", panel="evt time")
                 wx.CallAfter(pub.sendMessage, "show day", event=global_params.day_events[global_params.current_event])
-        print("time change succeed")
     elif status == "2":
         call_error("couldnt change time because you are not the manager")
     else:
@@ -484,7 +455,6 @@ def handle_delete_event(params):
     error = ""
     status, event_id = params
     if status == "0":
-        print("succeed")
         global_params.day_events.remove(global_params.day_events[global_params.current_event])
         wx.CallAfter(pub.sendMessage, "hide", panel="event")
         if len(global_params.day_events) == 0:
@@ -524,7 +494,6 @@ def handle_exit_calendar(params):
     """
     username, calendar_id = params
     if calendar_id == global_params.current_calendar[0]:
-        print("participant exit from calendar")
         global_params.current_calendar[1].remove(username)
 
 
@@ -537,8 +506,7 @@ def handle_delete_calendar(params):
     status, calendar_id = params
     if status == "0":
         if global_params.current_calendar[0] == calendar_id:
-            print("delete current calendar")
-            print(global_params.user_calendars)
+
             if global_params.user_calendars.index(calendar_id) == (len(global_params.user_calendars)-1):
                 get_calendar_info(global_params.user_calendars[-2])
 
@@ -598,17 +566,13 @@ def handle_day_events(params):
     :param params: day_events
     :return:
     """
-    print(params)
-
     if params[0] != "":
         events = params[0].split("*")
         for i in range(len(events)):
             events[i] = events[i].split("^")
             events[i][0] = events[i][0].split("$")
-        print(events)
         global_params.day_events = events
         global_params.current_event = 0
-        print("got day events, show them on screen")
         event = events[0]
     else:
         global_params.day_events = []
@@ -644,12 +608,9 @@ def handle_month_events(params):
         for i in events:
             date, color = i.split("^")
             month_events[date] = color
-    print("got month events - show them on screen")
-    print(month_events)
     dates = []
     for i in month_events.keys():
         dates += [[int(i[:2]), month_events[i]]]
-    print(dates)
     wx.CallAfter(pub.sendMessage, "mark", dates=dates)
 
 
@@ -660,23 +621,6 @@ def get_calendar_info(calendar_id):
     :return:
     """
     comm.send(protocol.pack_get_calendar_info(calendar_id))
-
-
-
-# def handle_calendar_info(params):
-#     """
-#     show name, participants and month events on screen and save it on the dictionary
-#     :param params:
-#     :return:
-#     """
-#     name, participants, events = params[0].split("$")
-#     participants = participants.split("*")
-#     events = events.split("*")
-#     if len(events) > 0 and events[0] != "":
-#         for i in events:
-#             date, color = i.split("^")
-#             month_events[date] = color
-#     print("got month events - show them on screennnnn")
 
 
 def get_invitations():
@@ -696,17 +640,13 @@ def handle_invitations(params):
     if params == [""]:
         wx.CallAfter(pub.sendMessage, "show invitation", params=[])
     else:
-        print("hiiiiiiiiiiiii")
-        print(params)
         invitations = params[0].split("*")
-        print(invitations)
         for i in range(len(invitations)):
             invitations[i] = invitations[i].split("^")
             invitations[i][2] = invitations[i][2].split("$")
         global_params.invitations = invitations
         wx.CallAfter(pub.sendMessage, "show invitation", params=invitations[0])
         global_params.current_invitation = 0
-    print(f"got invitations, show them on screen")
 
 
 def handle_recv(msg_q):
@@ -743,7 +683,6 @@ def handle_graphics(graphics_q):
             login(username, password)
         elif opcode == "right":
             current = global_params.user_calendars.index(global_params.current_calendar[0])
-            print("right calendar", current, len(global_params.user_calendars), global_params.user_calendars)
             if len(global_params.user_calendars) == (current+1):
                 call_error("can't go more right")
             else:
@@ -752,7 +691,6 @@ def handle_graphics(graphics_q):
 
         elif opcode == "left":
             current = global_params.user_calendars.index(global_params.current_calendar[0])
-            print("left calendar", current, len(global_params.user_calendars), global_params.user_calendars)
             if current == 0:
                 call_error("can't go more left")
             else:
@@ -769,7 +707,6 @@ def handle_graphics(graphics_q):
             get_month_events(global_params.current_calendar[0], month, year)
         elif opcode == "day":
             date = params
-            # wx.CallAfter(pub.sendMessage, "hide", panel="calendar")
             get_day_events(global_params.current_calendar[0], date)
         elif opcode == "left event":
             if global_params.current_event == 0:
@@ -835,7 +772,6 @@ def handle_graphics(graphics_q):
         elif opcode == "cal name":
             change_name_of_calendar(params, global_params.current_calendar[0])
         elif opcode == "evt name":
-            print("nameeeeeeee", global_params.day_events[global_params.current_event], params)
             change_name_of_event(params, global_params.day_events[global_params.current_event][-1])
         elif opcode == "evt time":
             change_time(global_params.day_events[global_params.current_event][-1], params[1], params[2], params[0])
@@ -847,7 +783,7 @@ def handle_graphics(graphics_q):
 if __name__ == '__main__':
     msg_q = queue.Queue()
     graphics_q = queue.Queue()
-    comm = ClientComm('127.0.0.1', 4500, msg_q)
+    comm = ClientComm('192.168.4.82', 4500, msg_q)
     opcodes = {"00": handle_login, "01": handle_sign_up, "02": handle_new_calendar, "04": handle_new_event,
                "05": handle_event_info, "10": handle_there_is_an_invitation, "11": handle_add_participant_to_calendar,
                "13": handle_is_event_invitation_work, "14": handle_invitations, "15": handle_is_calendar_invitation_work,
@@ -857,9 +793,9 @@ if __name__ == '__main__':
     month_events = {}  # date: color
     global_params = Params()
     global_params.day_events = [["1", "01.01.2024", "hello", "18:00", "20:00", "amit", ["amit", "alon", "yuval"]]]  # [id, date, name, start, end, manager, [participants]]
-    # global_params.current_calendar = ["58", ["test1", "test2"], "test", "test1"]  # id, participants, name, manager
 
 
+    # tests i did
     # login("test2", "1234")
     # sign_up("test4", "1234", "4444444444")
     # new_calendar("hello", ["test3"])
@@ -893,11 +829,4 @@ if __name__ == '__main__':
     frame.Show()
     app.MainLoop()
 
-    # while True:
-    #     msg = msg_q.get()
-    #     opcode, params = protocol.unpack(msg)
-    #     print(f'got from server: {msg}')
-    #     if opcode in opcodes:
-    #         print(opcodes[opcode](params))
-    #     else:
-    #         print(f'command number {opcode} not in dictionary')
+
