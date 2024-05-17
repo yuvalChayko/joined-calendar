@@ -1,14 +1,16 @@
+# graphics - responsible for the graphics
+
 import wx
 from pubsub import pub
 import wx.adv
 import wx.lib.scrolledpanel
 import time
 from datetime import datetime
-
-
 from wx.lib.calendar import Calendar
 from wx.adv import CalendarCtrl, GenericCalendarCtrl, CalendarDateAttr
 
+
+# MyFrame - the frame of the graphics
 class MyFrame(wx.Frame):
     def __init__(self, graphics_q, parent=None):
         super(MyFrame, self).__init__(parent, title="joined calendar", size=(900, 700))
@@ -30,7 +32,7 @@ class MyFrame(wx.Frame):
 
 
         
-
+# MainPanel - the main panel of the graphics which all the other panels rely on
 class MainPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -242,6 +244,7 @@ class MainPanel(wx.Panel):
         self.Refresh()
 
 
+# LoginPanel - responsible for the log in
 class LoginPanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -336,6 +339,8 @@ class LoginPanel(wx.Panel):
         self.Hide()
         self.parent.first.Show()
 
+
+# RegisterPanel - responsible for the registration
 class RegistrationPanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -445,6 +450,7 @@ class RegistrationPanel(wx.Panel):
         self.parent.first.Show()
 
 
+# FirstPanel - the first panel the user sees. in it you choose if you want to register or to log in
 class FirstPanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -502,6 +508,8 @@ class FirstPanel(wx.Panel):
         self.parent.registration.Show()
 
 
+
+# CalendarPanel - shows the calendar and connects to all of it's abilities
 class CalendarPanel(wx.Panel):
     def __init__(self, parent, frame, name="personal", participants=None, manager="1"):
         wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
@@ -760,7 +768,7 @@ class CalendarPanel(wx.Panel):
 
 
 
-
+# ParticipantsPanel - responsible for showing the calendar's participants on the calendar panel when the participants button is clicked
 class ParticipantsPanel(wx.Panel):
     def __init__(self, parent, frame, btn, participants):
         wx.Panel.__init__(self, parent,size=(100,140),pos=(0,0))
@@ -844,6 +852,8 @@ class ParticipantsPanel(wx.Panel):
         self.Layout()
 
 
+
+# EventPanel - show the events of the chosen day and connect to it's abilities
 class EventPanel(wx.Panel):
     def __init__(self, parent, frame, name="&&&", participants=None, manager="$$$", date="01.01.2024", start = "16:00", end="18:00"):
         wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
@@ -1070,6 +1080,8 @@ class EventPanel(wx.Panel):
         self.parent.new_evt_parti.Show()
 
 
+
+# newCalendarPanel - responsible for making new calendars
 class newCalendarPanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -1166,6 +1178,8 @@ class newCalendarPanel(wx.Panel):
         self.parent.calendar.Show()
 
 
+
+# newCalendarParticipantPanel - responsible for addind participants to calendar
 class newCalendarParticipantPanel(wx.Panel):
     def __init__(self, parent, frame, calendar_name="personal"):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -1258,6 +1272,8 @@ class newCalendarParticipantPanel(wx.Panel):
         self.parent.calendar.Show()
 
 
+
+# invitationsPanel - responsible for showing invitations and accept / decline them
 class invitationsPanel(wx.Panel):
     def __init__(self, parent, frame, name="test", participants=None, manager="1", date="&&&", start = "16:00", end="18:00"):
         wx.Panel.__init__(self, parent, pos=parent.GetPosition(), size=parent.GetSize())
@@ -1435,6 +1451,8 @@ class invitationsPanel(wx.Panel):
         self.frame.graphics_q.put(("response", ("1")))
 
 
+
+# newEventParticipantPanel - responsible for adding participants to event
 class newEventParticipantPanel(wx.Panel):
     def __init__(self, parent, frame, event_name="test"):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -1526,6 +1544,8 @@ class newEventParticipantPanel(wx.Panel):
         self.parent.event.Show()
 
 
+
+# newEventPanel - responsible for making new event
 class newEventPanel(wx.Panel):
     def __init__(self, parent, frame, date="test date"):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -1652,6 +1672,7 @@ class newEventPanel(wx.Panel):
         self.parent.event.Show()
 
 
+# calNamePanel - responsible for changing the name of calendar
 class calNamePanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -1737,6 +1758,8 @@ class calNamePanel(wx.Panel):
         self.parent.calendar.Show()
 
 
+
+# evtNamePanel - responsible for changing the name of event
 class evtNamePanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())
@@ -1822,6 +1845,8 @@ class evtNamePanel(wx.Panel):
         self.parent.event.Show()
 
 
+
+# evtTimePanel - responsible for changing the time of event
 class evtTimePanel(wx.Panel):
     def __init__(self, parent, frame):
         wx.Panel.__init__(self, parent, pos=wx.DefaultPosition, size=frame.GetSize())

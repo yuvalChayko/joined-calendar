@@ -1,3 +1,5 @@
+# client_protocol - responsible for the use of protocol in the communication with the server
+
 def unpack(data):
     """
     unpack the data the server sent occording to the protocol

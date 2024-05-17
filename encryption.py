@@ -1,3 +1,5 @@
+# Encryption - responsible for the encryption and decryption of the messages between the server and the clients
+
 import base64
 from Cryptodome.Cipher import AES
 from Cryptodome import Random
@@ -51,10 +53,10 @@ class Encryption:
 
 if __name__ == '__main__':
 
-    cry = Encryption("Merry")
+    cry = Encryption("yuval")
     length = cry.encrypt("5")
     print(length)
     print(cry.decrypt(length))
-    msg = cry.encrypt("My name is meryy")
+    msg = cry.encrypt("My name is yuval")
     print(msg)
     print(cry.decrypt(msg))

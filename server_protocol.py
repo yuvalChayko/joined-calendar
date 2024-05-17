@@ -1,3 +1,6 @@
+# server_protocol -responsible for the use of protocol in the communication with the clients
+
+
 def unpack(data):
     """
     unpack the data the server sent occording to the protocol
@@ -97,7 +100,6 @@ def pack_invitations(invitations):
     :param invitations:
     :return:
     """
-    print(invitations)
     if not invitations:
         day_events = []
     for i in invitations:
@@ -105,7 +107,6 @@ def pack_invitations(invitations):
 
     invitations = ["^".join(x) for x in invitations]
     invitations = "*".join(invitations)
-    print(f"hello {invitations}")
     return f"14{invitations}"
 
 

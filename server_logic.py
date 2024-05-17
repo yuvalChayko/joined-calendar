@@ -1,3 +1,6 @@
+# server_logic - responsible for the server's logic
+
+
 from server_comm import ServerComm
 import queue
 import server_protocol as protocol

@@ -1,3 +1,6 @@
+# server_comm - responsible for communication with the clients
+
+
 import select
 import socket
 import threading

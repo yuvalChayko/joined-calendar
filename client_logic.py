@@ -1,3 +1,5 @@
+# client_logic - responsible for the client's logic
+
 from client_comm import ClientComm
 import queue
 import threading

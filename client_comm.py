@@ -1,3 +1,5 @@
+# ClientComm - responsible for communication with the server
+
 import socket
 import threading
 import sys

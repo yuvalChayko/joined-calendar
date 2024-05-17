@@ -1,3 +1,5 @@
+# joined_calendar_db - responsible for the data base
+
 import sqlite3
 from datetime import date
 import hashlib
