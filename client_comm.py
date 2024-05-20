@@ -22,6 +22,10 @@ class ClientComm:
 
 
     def _main_loop(self):
+        """
+        connect to server and then get msgs from him
+        :return:
+        """
         try:
             self.socket.connect((self.server_ip, self.port))
         except Exception as e:

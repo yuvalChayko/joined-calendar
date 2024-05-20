@@ -22,6 +22,10 @@ class ServerComm:
         threading.Thread(target=self._main_loop).start()
 
     def _main_loop(self):
+        """
+        connect clients and get msgs from them
+        :return:
+        """
         self.socket.bind(("0.0.0.0", self.port))
         self.socket.listen(3)
         self.is_running = True
@@ -56,7 +60,7 @@ class ServerComm:
 
     def _disconnect_client(self, client):
         '''
-        gets client to
+        disconnect the client
         :param client:
         :return:
         '''
@@ -114,9 +118,17 @@ class ServerComm:
                     self._disconnect_client(client)
 
     def close_server(self):
+        """
+        close server
+        :return:
+        """
         self.is_running = False
 
     def is_running(self):
+        """
+        check if still running
+        :return:
+        """
         return self.is_running
 
     def _set_key(self, socket, ip):
