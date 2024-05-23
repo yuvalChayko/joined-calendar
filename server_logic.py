@@ -129,7 +129,7 @@ def handle_new_event(ip, params):
             for user in current_open_calendars:
                 month = date[3:]
                 if month == current_open_calendars[user][1] and db.is_participant_exists_in_calendar(current_open_calendars[user][0], username) and user != username:
-                    date, color = get_event_info(event_id, current_open_calendars[user][0])
+                    date, color = get_event_info(date, current_open_calendars[user][0])
                     comm.send(current_users[user], protocol.pack_event_info(date, color))
 
         else:

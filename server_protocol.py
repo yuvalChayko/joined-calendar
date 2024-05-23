@@ -37,8 +37,13 @@ def pack_new_calendar(status, data_or_not_existing_participants):
     """
     if status == "0" or status == "9":
         for i in range(len(data_or_not_existing_participants[3])):
+            if type(data_or_not_existing_participants[3][i]) is str:
+                data_or_not_existing_participants[3] = "$".join(data_or_not_existing_participants[3])
+                data_or_not_existing_participants[3] = [data_or_not_existing_participants[3]]
+                break
             data_or_not_existing_participants[3][i] = "$".join(data_or_not_existing_participants[3][i])
-        data_or_not_existing_participants[3] = "*".join(data_or_not_existing_participants[3])
+        if type(data_or_not_existing_participants[3]) is list:
+            data_or_not_existing_participants[3] = "*".join(data_or_not_existing_participants[3])
     print("pack new calendar", data_or_not_existing_participants)
     data_or_not_existing_participants = "^".join(data_or_not_existing_participants)
 
