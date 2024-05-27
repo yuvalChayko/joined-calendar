@@ -43,19 +43,18 @@ class ServerComm:
                     continue
 
                 else:
-                    if current_socket in self.open_clients:
-                        try:
-                            data_len = int(current_socket.recv(3).decode())
-                            data = current_socket.recv(data_len).decode()
-                        except Exception as e:
-                            print("main server in server comm" + str(e))
+                    try:
+                        data_len = int(current_socket.recv(3).decode())
+                        data = current_socket.recv(data_len).decode()
+                    except Exception as e:
+                        print("main server in server comm" + str(e))
+                        self._disconnect_client(current_socket)
+                    else:
+                        if data == '':
                             self._disconnect_client(current_socket)
                         else:
-                            if data == '':
-                                self._disconnect_client(current_socket)
-                            else:
 
-                                self.rcv_q.put((self.open_clients[current_socket][0], self.open_clients[current_socket][1].decrypt(data)))
+                            self.rcv_q.put((self.open_clients[current_socket][0], self.open_clients[current_socket][1].decrypt(data)))
 
 
     def _disconnect_client(self, client):

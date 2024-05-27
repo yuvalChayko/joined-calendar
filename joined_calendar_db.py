@@ -944,6 +944,21 @@ class joined_calendar_db:
             date = self.db_cursor.fetchone()[0]
         return date
 
+    def get_event_time(self, event_id):
+        """
+        get event start hour, end hour, date
+        :param event_id:
+        :return:
+        """
+        info = []
+        if self._is_event_exists(event_id):
+
+            sql = "SELECT start_hour, end_hour, date FROM " + self.event_info + " WHERE event_id = ?"
+            self.db_cursor.execute(sql, (event_id,))
+            info = self.db_cursor.fetchone()
+        return info
+
+
     def get_event_info(self, event_id, username, calendar_id):
         """
         get event info - participants, name, manager, start hour, end hour, date

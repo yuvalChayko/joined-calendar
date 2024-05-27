@@ -1282,12 +1282,9 @@ class invitationsPanel(wx.Panel):
         self.SetBackgroundColour(wx.LIGHT_GREY)
         self.events = []
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        btnBox = wx.BoxSizer(wx.HORIZONTAL)
         self.backBtn = wx.Button(self, wx.ID_ANY, label="back", size=(100, 40))
         self.backBtn.Bind(wx.EVT_BUTTON, self.go_back)
-        btnBox.Add(self.backBtn, 1, wx.ALL, 5)
-        btnBox.AddSpacer(650)
-        mainbox.Add(btnBox)
+        mainbox.Add(self.backBtn, 0, wx.ALL, 5)
         mainbox.AddSpacer(10)
 
         if participants:

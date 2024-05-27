@@ -237,15 +237,21 @@ def handle_is_event_accepted(ip, params):
     username = [i for i in current_users if current_users[i] == ip][0]
     db.delete_event_invitation(username, event_id)
     if status == "0":
-        db.add_event_participant(event_id, username)
-        calendar_id = db.get_calendar_from_event(event_id)
-        date = db.get_event_date(event_id)
-        info = db.get_day_color(date, calendar_id)
-        if len(info) > 0 and info != [""]:
-            for user in current_open_calendars:
-                if current_open_calendars[user][1] == info[0][3:] and db.is_participant_exists_in_calendar(current_open_calendars[user][0], username):
-                    date, color = db.get_day_color(date, current_open_calendars[user][0])
-                    comm.send(current_users[user], protocol.pack_event_info(date, color))
+        time = db.get_event_time(event_id)
+        if len(time) != 0:
+            start, end, date = time
+            if db.check_is_time_available(username, start, end, date):
+                db.add_event_participant(event_id, username)
+                calendar_id = db.get_calendar_from_event(event_id)
+                date = db.get_event_date(event_id)
+                info = db.get_day_color(date, calendar_id)
+                if len(info) > 0 and info != [""]:
+                    for user in current_open_calendars:
+                        if current_open_calendars[user][1] == info[0][3:] and db.is_participant_exists_in_calendar(current_open_calendars[user][0], username):
+                            date, color = db.get_day_color(date, current_open_calendars[user][0])
+                            comm.send(current_users[user], protocol.pack_event_info(date, color))
+            else:
+                comm.send(ip, protocol.pack_new_event("1", ""))
 
 
 def handle_change_name_of_calendar(ip, params):
